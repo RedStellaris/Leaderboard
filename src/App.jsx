@@ -134,7 +134,7 @@ function Td({ children, right, center, mono, bold, dim, gold, accent }) {
       fontFamily: mono ? "'Courier New', monospace" : "inherit",
       fontWeight: bold ? 600 : 400,
       fontSize:"0.875rem",
-      color: gold ? C.gold : dim ? C.soft : accent ? C.accent : C.text,
+      color: gold ? C.gold : dim ? C.soft : accent ? "#FFFFFF" : C.text,
       borderBottom:`1px solid ${C.border}22`,
     }}>{children}</td>
   );
@@ -385,7 +385,7 @@ export default function App() {
 
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", flexWrap:"wrap", gap:12 }}>
             <div>
-              <div style={{ color:C.accentDim, fontSize:"0.65rem", fontWeight:700, letterSpacing:"0.18em", marginBottom:5 }}>
+              <div style={{ color:"#FFFFFF", fontSize:"0.65rem", fontWeight:700, letterSpacing:"0.18em", marginBottom:5 }}>
                 CLASSEMENT OFFICIEL
               </div>
               <h1 style={{
@@ -425,7 +425,7 @@ export default function App() {
           </div>
 
           {isMock && (
-            <p style={{ color:C.accentDim, fontSize:"0.7rem", margin:"8px 0 0" }}>
+            <p style={{ color:C.soft, fontSize:"0.7rem", margin:"8px 0 0" }}>
               ⚠ Données de démonstration — connectez votre Google Sheets pour charger les vraies données
             </p>
           )}
