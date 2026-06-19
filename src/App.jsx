@@ -390,7 +390,7 @@ export default function App() {
               </div>
               <h1 style={{
                 margin:0, fontFamily:"'Rajdhani',sans-serif",
-                fontSize:"2rem", fontWeight:700, letterSpacing:"0.03em", lineHeight:1,
+                fontSize:"2rem", fontWeight:700, letterSpacing:"0.03em", lineHeight:1, color:"#FFFFFF",
               }}>
                 <span style={{display:"flex",alignItems:"center",gap:10}}><img src={LOGO} alt="AIIMCR" style={{width:48,height:48,borderRadius:"50%",objectFit:"cover"}}/> Leaderboard</span>
               </h1>
