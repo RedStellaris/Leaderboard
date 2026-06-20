@@ -26,6 +26,23 @@ const MOCK_DATA = [
 // ==================== CONSTANTS ====================
 const F1_POINTS = [25, 18, 15, 10, 8];
 
+// ==================== GOOGLE SHEETS ID ====================
+// Remplace cet ID par celui de ta feuille si elle change
+const SHEET_ID = "1mABgHcqT9kzriAIuscMitRH72WuWJmYUOtxDmnKGSRg";
+
+async function fetchSheetData() {
+  const res  = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`);
+  if (!res.ok) throw new Error("Feuille inaccessible — vérifiez qu'elle est partagée en public (Lecteur)");
+  const text = await res.text();
+  const [header, ...lines] = text.trim().split("\n");
+  const keys = header.split(",").map(k => k.trim().replace(/"/g,"").toLowerCase());
+  const rows = lines
+    .map(l => Object.fromEntries(l.split(",").map((v,i) => [keys[i], v.trim().replace(/"/g,"")])))
+    .filter(r => r.pilote && r.course && r.temps);
+  if (!rows.length) throw new Error("Aucune ligne valide — vérifiez les colonnes : pilote, course, temps, date");
+  return rows;
+}
+
 const C = {
   bg:        "#09090E",
   card:      "#111118",
@@ -297,17 +314,13 @@ function SheetsLoader({ onLoad }) {
     try {
       const m = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
       if (!m) throw new Error("URL invalide — copiez l'URL depuis la barre d'adresse de Sheets");
-      const csv = await fetch(
-        `https://docs.google.com/spreadsheets/d/${m[1]}/export?format=csv`
-      );
+      const csv = await fetch(`https://docs.google.com/spreadsheets/d/${m[1]}/export?format=csv`);
       if (!csv.ok) throw new Error("Feuille inaccessible — vérifiez qu'elle est partagée en public (Lecteur)");
       const text = await csv.text();
       const [header, ...lines] = text.trim().split("\n");
       const keys = header.split(",").map(k => k.trim().replace(/"/g,"").toLowerCase());
       const rows = lines
-        .map(l => Object.fromEntries(
-          l.split(",").map((v,i) => [keys[i], v.trim().replace(/"/g,"")])
-        ))
+        .map(l => Object.fromEntries(l.split(",").map((v,i) => [keys[i], v.trim().replace(/"/g,"")])))
         .filter(r => r.pilote && r.course && r.temps);
       if (!rows.length) throw new Error("Aucune ligne valide — vérifiez les colonnes : pilote, course, temps, date");
       onLoad(rows);
@@ -349,7 +362,15 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("global");
   const [sub,       setSub]       = useState("cumul");
   const [showSheet, setShowSheet] = useState(false);
+  const [autoErr,   setAutoErr]   = useState("");
   const isMock = data === MOCK_DATA;
+
+  // Chargement automatique au démarrage
+  useEffect(() => {
+    fetchSheetData()
+      .then(rows => { setData(rows); setAutoErr(""); })
+      .catch(e  => setAutoErr(e.message));
+  }, []);
 
   useEffect(() => {
     const link = document.createElement("link");
@@ -424,9 +445,14 @@ export default function App() {
             {showSheet && <SheetsLoader onLoad={handleLoad} />}
           </div>
 
-          {isMock && (
+          {autoErr && (
+            <p style={{ color:C.accent, fontSize:"0.7rem", margin:"8px 0 0" }}>
+              ⚠ {autoErr}
+            </p>
+          )}
+          {isMock && !autoErr && (
             <p style={{ color:C.soft, fontSize:"0.7rem", margin:"8px 0 0" }}>
-              ⚠ Données de démonstration — connectez votre Google Sheets pour charger les vraies données
+              Chargement des données…
             </p>
           )}
         </div>
