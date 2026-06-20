@@ -6,21 +6,21 @@ const LOGO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHgAAAB4CAIAAAC2BqGF
 
 // ==================== MOCK DATA ====================
 const MOCK_DATA = [
-  { pilote: "Leclerc",    course: "Circuit de l'Aube",  temps: "01:23.456", date: "2026-05-10" },
-  { pilote: "Verstappen", course: "Circuit de l'Aube",  temps: "01:21.789", date: "2026-05-10" },
-  { pilote: "Hamilton",   course: "Circuit de l'Aube",  temps: "01:24.201", date: "2026-05-10" },
-  { pilote: "Norris",     course: "Circuit de l'Aube",  temps: "01:22.934", date: "2026-05-10" },
-  { pilote: "Sainz",      course: "Circuit de l'Aube",  temps: "01:25.678", date: "2026-05-10" },
-  { pilote: "Leclerc",    course: "Baie du Dragon",     temps: "02:10.123", date: "2026-05-17" },
-  { pilote: "Verstappen", course: "Baie du Dragon",     temps: "02:08.456", date: "2026-05-17" },
-  { pilote: "Hamilton",   course: "Baie du Dragon",     temps: "02:09.789", date: "2026-05-17" },
-  { pilote: "Norris",     course: "Baie du Dragon",     temps: "02:11.234", date: "2026-05-17" },
-  { pilote: "Sainz",      course: "Baie du Dragon",     temps: "02:12.567", date: "2026-05-17" },
-  { pilote: "Leclerc",    course: "Tunnel Alpin",       temps: "01:45.321", date: "2026-05-24" },
-  { pilote: "Verstappen", course: "Tunnel Alpin",       temps: "01:46.987", date: "2026-05-24" },
-  { pilote: "Hamilton",   course: "Tunnel Alpin",       temps: "01:44.567", date: "2026-05-24" },
-  { pilote: "Norris",     course: "Tunnel Alpin",       temps: "01:47.234", date: "2026-05-24" },
-  { pilote: "Sainz",      course: "Tunnel Alpin",       temps: "01:43.891", date: "2026-05-24" },
+  { pilote: "Leclerc",    numero: "16", ecurie: "Ferrari",  course: "Circuit de l'Aube",  temps: "01:23.456", date: "2026-05-10" },
+  { pilote: "Verstappen", numero: "1",  ecurie: "Red Bull",  course: "Circuit de l'Aube",  temps: "01:21.789", date: "2026-05-10" },
+  { pilote: "Hamilton",   numero: "44", ecurie: "Mercedes",  course: "Circuit de l'Aube",  temps: "01:24.201", date: "2026-05-10" },
+  { pilote: "Norris",     numero: "4",  ecurie: "McLaren",   course: "Circuit de l'Aube",  temps: "01:22.934", date: "2026-05-10" },
+  { pilote: "Sainz",      numero: "55", ecurie: "Ferrari",   course: "Circuit de l'Aube",  temps: "01:25.678", date: "2026-05-10" },
+  { pilote: "Leclerc",    numero: "16", ecurie: "Ferrari",   course: "Baie du Dragon",     temps: "02:10.123", date: "2026-05-17" },
+  { pilote: "Verstappen", numero: "1",  ecurie: "Red Bull",  course: "Baie du Dragon",     temps: "02:08.456", date: "2026-05-17" },
+  { pilote: "Hamilton",   numero: "44", ecurie: "Mercedes",  course: "Baie du Dragon",     temps: "02:09.789", date: "2026-05-17" },
+  { pilote: "Norris",     numero: "4",  ecurie: "McLaren",   course: "Baie du Dragon",     temps: "02:11.234", date: "2026-05-17" },
+  { pilote: "Sainz",      numero: "55", ecurie: "Ferrari",   course: "Baie du Dragon",     temps: "02:12.567", date: "2026-05-17" },
+  { pilote: "Leclerc",    numero: "16", ecurie: "Ferrari",   course: "Tunnel Alpin",       temps: "01:45.321", date: "2026-05-24" },
+  { pilote: "Verstappen", numero: "1",  ecurie: "Red Bull",  course: "Tunnel Alpin",       temps: "01:46.987", date: "2026-05-24" },
+  { pilote: "Hamilton",   numero: "44", ecurie: "Mercedes",  course: "Tunnel Alpin",       temps: "01:44.567", date: "2026-05-24" },
+  { pilote: "Norris",     numero: "4",  ecurie: "McLaren",   course: "Tunnel Alpin",       temps: "01:47.234", date: "2026-05-24" },
+  { pilote: "Sainz",      numero: "55", ecurie: "Ferrari",   course: "Tunnel Alpin",       temps: "01:43.891", date: "2026-05-24" },
 ];
 
 // ==================== CONSTANTS ====================
@@ -176,14 +176,16 @@ function CourseTable({ ranking }) {
     <div style={{ overflowX:"auto" }}>
       <table style={{ width:"100%", borderCollapse:"collapse" }}>
         <thead><tr>
-          <Th>Pos</Th><Th>Pilote</Th>
+          <Th>Pos</Th><Th>#</Th><Th>Pilote</Th><Th>Écurie</Th>
           <Th right>Temps</Th><Th right>Écart</Th><Th right>Pts</Th>
         </tr></thead>
         <tbody>
           {ranking.map((r, i) => (
             <tr key={r.pilote} style={{ background: i%2===0 ? C.row : C.rowAlt }}>
               <Td center><Rank n={r.rank} /></Td>
+              <Td center dim>{r.numero ? `#${r.numero}` : "–"}</Td>
               <Td bold gold={i===0}>{r.pilote}</Td>
+              <Td dim>{r.ecurie || "–"}</Td>
               <Td right mono gold={i===0}>{r.temps}</Td>
               <Td right mono dim>{r.delta === 0 ? "–" : formatDelta(r.delta)}</Td>
               <Td right bold accent={r.points>0}>{r.points > 0 ? r.points : "–"}</Td>
@@ -195,24 +197,34 @@ function CourseTable({ ranking }) {
   );
 }
 
-function CumulTable({ ranking }) {
+function CumulTable({ ranking, data }) {
+  // Récupérer ecurie et numero par pilote depuis les données
+  function getPilotInfo(pilote) {
+    const row = data.find(d => d.pilote === pilote);
+    return { ecurie: row?.ecurie || "–", numero: row?.numero || "" };
+  }
   return (
     <div style={{ overflowX:"auto" }}>
       <table style={{ width:"100%", borderCollapse:"collapse" }}>
         <thead><tr>
-          <Th>Pos</Th><Th>Pilote</Th>
+          <Th>Pos</Th><Th>#</Th><Th>Pilote</Th><Th>Écurie</Th>
           <Th right>Temps total</Th><Th right>Moy / course</Th><Th right>Courses</Th>
         </tr></thead>
         <tbody>
-          {ranking.map((r, i) => (
-            <tr key={r.pilote} style={{ background: i%2===0 ? C.row : C.rowAlt }}>
-              <Td center><Rank n={i+1} /></Td>
-              <Td bold gold={i===0}>{r.pilote}{i===0 ? " 👑" : ""}</Td>
-              <Td right mono gold={i===0}>{formatTime(r.totalMs)}</Td>
-              <Td right mono dim>{formatTime(Math.round(r.avgMs))}</Td>
-              <Td right dim>{r.done}/{r.of}</Td>
-            </tr>
-          ))}
+          {ranking.map((r, i) => {
+            const info = getPilotInfo(r.pilote);
+            return (
+              <tr key={r.pilote} style={{ background: i%2===0 ? C.row : C.rowAlt }}>
+                <Td center><Rank n={i+1} /></Td>
+                <Td center dim>{info.numero ? `#${info.numero}` : "–"}</Td>
+                <Td bold gold={i===0}>{r.pilote}{i===0 ? " 👑" : ""}</Td>
+                <Td dim>{info.ecurie}</Td>
+                <Td right mono gold={i===0}>{formatTime(r.totalMs)}</Td>
+                <Td right mono dim>{formatTime(Math.round(r.avgMs))}</Td>
+                <Td right dim>{r.done}/{r.of}</Td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
       <p style={{ color:C.soft, fontSize:"0.7rem", margin:"10px 0 0" }}>
@@ -222,32 +234,41 @@ function CumulTable({ ranking }) {
   );
 }
 
-function PtsTable({ ranking, courses }) {
+function PtsTable({ ranking, courses, data }) {
+  function getPilotInfo(pilote) {
+    const row = data.find(d => d.pilote === pilote);
+    return { ecurie: row?.ecurie || "–", numero: row?.numero || "" };
+  }
   return (
     <div style={{ overflowX:"auto" }}>
       <table style={{ width:"100%", borderCollapse:"collapse" }}>
         <thead><tr>
-          <Th>Pos</Th><Th>Pilote</Th><Th right>Points</Th>
+          <Th>Pos</Th><Th>#</Th><Th>Pilote</Th><Th>Écurie</Th><Th right>Points</Th>
           {courses.map(c => <Th key={c} right><span style={{fontSize:"0.65rem"}}>{c}</span></Th>)}
         </tr></thead>
         <tbody>
-          {ranking.map((r, i) => (
-            <tr key={r.pilote} style={{ background: i%2===0 ? C.row : C.rowAlt }}>
-              <Td center><Rank n={i+1} /></Td>
-              <Td bold gold={i===0}>{r.pilote}{i===0 ? " 👑" : ""}</Td>
-              <Td right bold gold={i===0}>{r.points} pts</Td>
-              {courses.map(c => {
-                const d = r.detail[c];
-                return (
-                  <Td key={c} right dim>
-                    {d
-                      ? <span style={{ color: d.rank<=3 ? C.gold : C.soft }}>{d.pts}</span>
-                      : <span style={{ color:"#2a2a3a" }}>–</span>}
-                  </Td>
-                );
-              })}
-            </tr>
-          ))}
+          {ranking.map((r, i) => {
+            const info = getPilotInfo(r.pilote);
+            return (
+              <tr key={r.pilote} style={{ background: i%2===0 ? C.row : C.rowAlt }}>
+                <Td center><Rank n={i+1} /></Td>
+                <Td center dim>{info.numero ? `#${info.numero}` : "–"}</Td>
+                <Td bold gold={i===0}>{r.pilote}{i===0 ? " 👑" : ""}</Td>
+                <Td dim>{info.ecurie}</Td>
+                <Td right bold gold={i===0}>{r.points} pts</Td>
+                {courses.map(c => {
+                  const d = r.detail[c];
+                  return (
+                    <Td key={c} right dim>
+                      {d
+                        ? <span style={{ color: d.rank<=3 ? C.gold : C.soft }}>{d.pts}</span>
+                        : <span style={{ color:"#2a2a3a" }}>–</span>}
+                    </Td>
+                  );
+                })}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
       <p style={{ color:C.soft, fontSize:"0.7rem", margin:"10px 0 0" }}>
@@ -258,7 +279,7 @@ function PtsTable({ ranking, courses }) {
 }
 
 // ==================== VIEWS ====================
-function GlobalView({ sub, setSub, cumul, pts, courses }) {
+function GlobalView({ sub, setSub, cumul, pts, courses, data }) {
   return (
     <div>
       <div style={{ display:"flex", gap:8, marginBottom:20 }}>
@@ -266,8 +287,8 @@ function GlobalView({ sub, setSub, cumul, pts, courses }) {
         <Pill active={sub==="pts"}   onClick={()=>setSub("pts")}>🏆 Points</Pill>
       </div>
       {sub==="cumul"
-        ? <CumulTable ranking={cumul} />
-        : <PtsTable   ranking={pts}   courses={courses} />}
+        ? <CumulTable ranking={cumul} data={data} />
+        : <PtsTable   ranking={pts}   courses={courses} data={data} />}
     </div>
   );
 }
@@ -482,7 +503,7 @@ export default function App() {
       {/* ── CONTENT ── */}
       <div style={{ maxWidth:900, margin:"0 auto", padding:"24px 16px" }}>
         {activeTab === "global"
-          ? <GlobalView sub={sub} setSub={setSub} cumul={cumul} pts={pts} courses={courses} />
+          ? <GlobalView sub={sub} setSub={setSub} cumul={cumul} pts={pts} courses={courses} data={data} />
           : <CourseView course={activeTab} data={data} />
         }
       </div>
