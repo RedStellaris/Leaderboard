@@ -426,6 +426,23 @@ function SheetsLoader({ onLoad }) {
 }
 
 
+// ==================== SPINNER ====================
+function Spinner() {
+  return (
+    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", padding:"60px 0", gap:16 }}>
+      <div style={{
+        width:40, height:40,
+        border:`3px solid ${C.border}`,
+        borderTop:`3px solid ${C.accent}`,
+        borderRadius:"50%",
+        animation:"spin 0.8s linear infinite",
+      }} />
+      <span style={{ color:C.soft, fontSize:"0.8rem" }}>Chargement des données…</span>
+      <style>{"@keyframes spin { to { transform: rotate(360deg); } }"}</style>
+    </div>
+  );
+}
+
 // ==================== CONVERTISSEUR ====================
 function Converter({ onClose }) {
   const [mmss, setMmss] = useState("");
@@ -568,14 +585,80 @@ export default function App() {
   const [activeSession, setActiveSession] = useState("essais");
   const [showSheet,     setShowSheet]    = useState(false);
   const [showConverter, setShowConverter] = useState(false);
+  const [loading,       setLoading]       = useState(true);
+  const [lastUpdate,    setLastUpdate]    = useState(null);
+  const [timeAgoStr,    setTimeAgoStr]    = useState("");
   const [autoErr,       setAutoErr]      = useState("");
   const isMock = data === MOCK_DATA;
 
+  // Fonction utilitaire : "il y a X min"
+  function computeTimeAgo(date) {
+    if (!date) return "";
+    const secs = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (secs < 60)   return "à l'instant";
+    if (secs < 3600) return `il y a ${Math.floor(secs / 60)} min`;
+    return `il y a ${Math.floor(secs / 3600)}h`;
+  }
+
   useEffect(() => {
-    fetchSheetData()
-      .then(rows => { setData(rows); setAutoErr(""); })
-      .catch(e   => setAutoErr(e.message));
+    const CACHE_KEY      = "leaderboard_gt3_cache";
+    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+    async function load() {
+      // Vérifier le cache sessionStorage
+      try {
+        const raw = sessionStorage.getItem(CACHE_KEY);
+        if (raw) {
+          const { rows, ts } = JSON.parse(raw);
+          if (Date.now() - ts < CACHE_DURATION && rows?.length) {
+            const d = new Date(ts);
+            setData(rows);
+            setLastUpdate(d);
+            setTimeAgoStr(computeTimeAgo(d));
+            setLoading(false);
+            setAutoErr("");
+            // Rafraîchit en arrière-plan quand même
+            fetchSheetData()
+              .then(fresh => {
+                if (JSON.stringify(fresh) !== JSON.stringify(rows)) {
+                  const now = new Date();
+                  setData(fresh);
+                  setLastUpdate(now);
+                  setTimeAgoStr(computeTimeAgo(now));
+                  sessionStorage.setItem(CACHE_KEY, JSON.stringify({ rows: fresh, ts: now.getTime() }));
+                }
+              })
+              .catch(() => {});
+            return;
+          }
+        }
+      } catch (_) {}
+
+      // Pas de cache ou expiré → fetch depuis Sheets
+      try {
+        const rows = await fetchSheetData();
+        const now  = new Date();
+        setData(rows);
+        setLastUpdate(now);
+        setTimeAgoStr(computeTimeAgo(now));
+        setAutoErr("");
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify({ rows, ts: now.getTime() }));
+      } catch(e) {
+        setAutoErr(e.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    load();
   }, []);
+
+  // Timer : met à jour "il y a X min" toutes les 30 secondes
+  useEffect(() => {
+    if (!lastUpdate) return;
+    const id = setInterval(() => setTimeAgoStr(computeTimeAgo(lastUpdate)), 30000);
+    return () => clearInterval(id);
+  }, [lastUpdate]);
 
   useEffect(() => {
     const link = document.createElement("link");
@@ -681,20 +764,28 @@ export default function App() {
 
       {/* CONTENT */}
       <div style={{ maxWidth:960, margin:"0 auto", padding:"24px 16px" }}>
-        <SessionView
+        {loading ? <Spinner /> : <SessionView
           key={activeSession}
           sessionData={sessionData}
           isRace={activeSession === "course"}
-        />
+        />}
       </div>
 
       {showConverter && <Converter onClose={() => setShowConverter(false)} />}
 
       {/* FOOTER */}
-      <div style={{ textAlign:"center", padding:"14px", color:C.soft, fontSize:"0.7rem", borderTop:`1px solid ${C.border}` }}>
+      <div style={{ textAlign:"center", padding:"14px", color:C.soft, fontSize:"0.7rem", borderTop:`1px solid ${C.border}`, display:"flex", justifyContent:"center", alignItems:"center", gap:16, flexWrap:"wrap" }}>
         {isMock
-          ? "Mode démonstration"
-          : `${data.length} entrées · ${[...new Set(data.map(d => d.pilote))].length} pilotes`}
+          ? <span>Mode démonstration</span>
+          : <span>{data.length} entrées · {[...new Set(data.map(d => d.pilote))].length} pilotes</span>}
+        {lastUpdate && !isMock && (
+          <span style={{ color:C.border, fontSize:"0.65rem" }}>|</span>
+        )}
+        {lastUpdate && !isMock && (
+          <span title={lastUpdate.toLocaleString("fr-FR")}>
+            🕐 Mis à jour à {lastUpdate.toLocaleTimeString("fr-FR", { hour:"2-digit", minute:"2-digit" })} · {timeAgoStr}
+          </span>
+        )}
       </div>
     </div>
   );
