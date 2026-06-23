@@ -1,4 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 // ==================== LOGO ====================
 const LOGO = "/logo.png";
@@ -85,6 +87,86 @@ function computeTimeAgo(date) {
   if (secs < 60)   return "à l'instant";
   if (secs < 3600) return `il y a ${Math.floor(secs / 60)} min`;
   return `il y a ${Math.floor(secs / 3600)}h`;
+}
+
+
+// ==================== EXPORT PDF ====================
+async function loadLogoBase64() {
+  try {
+    const r   = await fetch("/logo.png");
+    const buf = await r.arrayBuffer();
+    const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+    return "data:image/png;base64," + b64;
+  } catch { return null; }
+}
+
+async function exportPDF({ title, sessionLabel, columns, rows, filename }) {
+  const doc  = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const logo = await loadLogoBase64();
+
+  // ── En-tête ──────────────────────────────────────────────────────────────
+  const W = 297;
+  doc.setFillColor(9, 9, 14);
+  doc.rect(0, 0, W, 28, "F");
+
+  // Logo
+  if (logo) {
+    try { doc.addImage(logo, "PNG", 8, 4, 20, 20); } catch {}
+  }
+
+  // Titre
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.setTextColor(238, 238, 245);
+  doc.text("Leaderboard GT3", logo ? 32 : 12, 13);
+
+  // Sous-titre (session + vue)
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(106, 106, 128);
+  doc.text(sessionLabel, logo ? 32 : 12, 21);
+
+  // Date à droite
+  const now = new Date().toLocaleString("fr-FR", { dateStyle:"short", timeStyle:"short" });
+  doc.setFontSize(8);
+  doc.text(now, W - 10, 13, { align: "right" });
+  doc.text("classement-ten.vercel.app", W - 10, 21, { align: "right" });
+
+  // ── Tableau ───────────────────────────────────────────────────────────────
+  autoTable(doc, {
+    startY:    32,
+    head:      [columns],
+    body:      rows,
+    margin:    { left: 8, right: 8 },
+    styles:    { fontSize: 9, cellPadding: 3, textColor: [30, 30, 40] },
+    headStyles:{
+      fillColor: [196, 18, 48], textColor: [255, 255, 255],
+      fontStyle: "bold", fontSize: 9,
+    },
+    alternateRowStyles: { fillColor: [245, 245, 250] },
+    columnStyles: { 0: { halign: "center" } },
+  });
+
+  // ── Footer ────────────────────────────────────────────────────────────────
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7);
+    doc.setTextColor(150, 150, 160);
+    doc.text(`Page ${i} / ${pageCount}`, W / 2, 205, { align: "center" });
+  }
+
+  doc.save(filename);
+}
+
+function usePDFExport() {
+  const [exporting, setExporting] = useState(false);
+  async function doExport(config) {
+    setExporting(true);
+    try { await exportPDF(config); }
+    finally { setExporting(false); }
+  }
+  return [exporting, doExport];
 }
 
 // ==================== COMPUTE ====================
@@ -375,12 +457,53 @@ function PtsTable({ ranking, courses, data, myPilot, display }) {
 }
 
 // ==================== VIEWS ====================
-function GlobalView({ sub, setSub, cumul, pts, courses, data, myPilot, display }) {
+function GlobalView({ sub, setSub, cumul, pts, courses, data, myPilot, display, sessionLabel }) {
+  const [exporting, doExport] = usePDFExport();
+
+  function handleExport() {
+    if (sub === "cumul") {
+      const cols = ["Pos", "#", "Pilote", "Écurie", "Temps total", "Moy / course", "Courses"];
+      const rows = cumul.map((r, i) => {
+        const info = getPilotInfo(data, r.pilote);
+        return [
+          `P${i+1}`, info.numero ? `#${info.numero}` : "–",
+          r.pilote, info.ecurie,
+          formatTime(r.totalMs), formatTime(Math.round(r.avgMs)),
+          `${r.done}/${r.of}`,
+        ];
+      });
+      doExport({ title:"Classement global — Temps cumulé", sessionLabel:`${sessionLabel} · Temps cumulé`, columns:cols, rows, filename:`classement_global_temps_${sessionLabel}.pdf` });
+    } else {
+      const cols = ["Pos", "#", "Pilote", "Écurie", "Points", ...courses];
+      const rows = pts.map((r, i) => {
+        const info = getPilotInfo(data, r.pilote);
+        return [
+          `P${i+1}`, info.numero ? `#${info.numero}` : "–",
+          r.pilote, info.ecurie, `${r.points} pts`,
+          ...courses.map(c => r.detail[c] ? String(r.detail[c].pts) : "–"),
+        ];
+      });
+      doExport({ title:"Classement global — Points", sessionLabel:`${sessionLabel} · Points`, columns:cols, rows, filename:`classement_global_points_${sessionLabel}.pdf` });
+    }
+  }
+
   return (
     <div>
-      <div style={{ display:"flex", gap:8, marginBottom:20 }}>
-        <Pill active={sub==="cumul"} onClick={()=>setSub("cumul")}>⏱ Temps cumulé</Pill>
-        <Pill active={sub==="pts"}   onClick={()=>setSub("pts")}>🏆 Points</Pill>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20, flexWrap:"wrap", gap:8 }}>
+        <div style={{ display:"flex", gap:8 }}>
+          <Pill active={sub==="cumul"} onClick={()=>setSub("cumul")}>⏱ Temps cumulé</Pill>
+          <Pill active={sub==="pts"}   onClick={()=>setSub("pts")}>🏆 Points</Pill>
+        </div>
+        {!display && (
+          <button onClick={handleExport} disabled={exporting} style={{
+            background: exporting ? C.card : C.accentDim,
+            border:`1px solid ${C.accent}`, color: exporting ? C.soft : "#fff",
+            padding:"8px 14px", borderRadius:7, cursor: exporting ? "wait" : "pointer",
+            fontSize:"0.8rem", fontWeight:600, display:"flex", alignItems:"center", gap:6,
+          }}>
+            {exporting ? "⏳ Export…" : "📄 PDF"}
+          </button>
+        )}
       </div>
       {sub==="cumul"
         ? <CumulTable ranking={cumul} data={data} myPilot={myPilot} display={display} />
@@ -389,10 +512,35 @@ function GlobalView({ sub, setSub, cumul, pts, courses, data, myPilot, display }
   );
 }
 
-function CourseView({ course, data, isRace, myPilot, display }) {
-  const ranking = useMemo(() => courseRanking(data, course), [data, course]);
-  const best    = ranking[0];
-  const timeFs  = display ? "2.2rem" : "1.6rem";
+function CourseView({ course, data, isRace, myPilot, display, sessionLabel }) {
+  const ranking          = useMemo(() => courseRanking(data, course), [data, course]);
+  const best             = ranking[0];
+  const timeFs           = display ? "2.2rem" : "1.6rem";
+  const [exporting, doExport] = usePDFExport();
+
+  function handleExport() {
+    const medal = ["🥇","🥈","🥉"];
+    const cols = [
+      ...(isRace ? ["Grille"] : []),
+      "Pos.", "#", "Pilote", "Écurie", "Temps", "Écart", "Pts"
+    ];
+    const rows = ranking.map((r, i) => [
+      ...(isRace ? [r.pos_depart ? `P${r.pos_depart}` : "–"] : []),
+      r.position ? `P${r.position}` : `P${r.rank}`,
+      r.numero   ? `#${r.numero}`  : "–",
+      r.pilote, r.ecurie || "–", r.temps,
+      r.delta === 0 ? "LEADER" : `+${Math.floor(r.delta/1000)}.${String(r.delta%1000).padStart(3,"0")}`,
+      r.points > 0 ? String(r.points) : "–",
+    ]);
+    doExport({
+      title:        `${course} — ${sessionLabel}`,
+      sessionLabel: `${sessionLabel} · ${course}`,
+      columns:      cols,
+      rows,
+      filename:     `classement_${course.replace(/\s+/g,"_")}_${sessionLabel}.pdf`,
+    });
+  }
+
   return (
     <div>
       <div style={{
@@ -407,9 +555,21 @@ function CourseView({ course, data, isRace, myPilot, display }) {
           </div>
           <div style={{ color:C.soft, fontSize:"0.8rem", marginTop:2 }}>{best?.pilote}</div>
         </div>
-        <div style={{ textAlign:"right" }}>
-          <div style={{ color:C.soft, fontSize:"0.65rem", letterSpacing:"0.12em", marginBottom:4 }}>PILOTES</div>
-          <div style={{ fontSize:timeFs, fontWeight:700 }}>{ranking.length}</div>
+        <div style={{ display:"flex", alignItems:"center", gap:16 }}>
+          <div style={{ textAlign:"right" }}>
+            <div style={{ color:C.soft, fontSize:"0.65rem", letterSpacing:"0.12em", marginBottom:4 }}>PILOTES</div>
+            <div style={{ fontSize:timeFs, fontWeight:700 }}>{ranking.length}</div>
+          </div>
+          {!display && (
+            <button onClick={handleExport} disabled={exporting} style={{
+              background: exporting ? C.card : C.accentDim,
+              border:`1px solid ${C.accent}`, color: exporting ? C.soft : "#fff",
+              padding:"8px 14px", borderRadius:7, cursor: exporting ? "wait" : "pointer",
+              fontSize:"0.8rem", fontWeight:600, display:"flex", alignItems:"center", gap:6,
+            }}>
+              {exporting ? "⏳ Export…" : "📄 PDF"}
+            </button>
+          )}
         </div>
       </div>
       <CourseTable ranking={ranking} isRace={isRace} myPilot={myPilot} display={display} />
@@ -417,7 +577,7 @@ function CourseView({ course, data, isRace, myPilot, display }) {
   );
 }
 
-function SessionView({ sessionData, isRace, myPilot, display }) {
+function SessionView({ sessionData, isRace, myPilot, display, sessionLabel }) {
   const [activeTab, setActiveTab] = useState("global");
   const [sub, setSub]             = useState("cumul");
   const courses = useMemo(() => [...new Set(sessionData.map(d => d.course))], [sessionData]);
@@ -446,8 +606,8 @@ function SessionView({ sessionData, isRace, myPilot, display }) {
         </div>
       </div>
       {activeTab==="global"
-        ? <GlobalView sub={sub} setSub={setSub} cumul={cumul} pts={pts} courses={courses} data={sessionData} myPilot={myPilot} display={display} />
-        : <CourseView course={activeTab} data={sessionData} isRace={isRace} myPilot={myPilot} display={display} />}
+        ? <GlobalView sub={sub} setSub={setSub} cumul={cumul} pts={pts} courses={courses} data={sessionData} myPilot={myPilot} display={display} sessionLabel={sessionLabel} />
+        : <CourseView course={activeTab} data={sessionData} isRace={isRace} myPilot={myPilot} display={display} sessionLabel={sessionLabel} />}
     </div>
   );
 }
@@ -712,7 +872,7 @@ export default function App() {
       </div>
       {/* Content display */}
       <div style={{padding:"20px 24px"}}>
-        {loading ? <Spinner /> : <SessionView key={activeSession} sessionData={sessionData} isRace={activeSession==="course"} myPilot={myPilot} display={true} />}
+        {loading ? <Spinner /> : <SessionView key={activeSession} sessionData={sessionData} isRace={activeSession==="course"} myPilot={myPilot} display={true} sessionLabel={SESSIONS.find(s=>s.key===activeSession)?.label||activeSession} />}
       </div>
     </div>
   );
@@ -770,7 +930,7 @@ export default function App() {
 
       {/* CONTENT */}
       <div style={{maxWidth:960,margin:"0 auto",padding:"24px 16px"}}>
-        {loading ? <Spinner /> : <SessionView key={activeSession} sessionData={sessionData} isRace={activeSession==="course"} myPilot={myPilot} display={false} />}
+        {loading ? <Spinner /> : <SessionView key={activeSession} sessionData={sessionData} isRace={activeSession==="course"} myPilot={myPilot} display={false} sessionLabel={SESSIONS.find(s=>s.key===activeSession)?.label||activeSession} />}
       </div>
 
       {showConverter   && <Converter  onClose={()=>setShowConverter(false)} />}
