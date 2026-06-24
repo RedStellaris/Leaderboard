@@ -8,7 +8,7 @@ const LOGO = "/logo.png";
 // ==================== CHAMPIONSHIP ====================
 const CHAMPIONSHIP_NAME   = "GT3 Championship";          // ← à personnaliser
 const CHAMPIONSHIP_SEASON = "Saison 2026";               // ← à personnaliser
-const DISCORD_URL         = "https://discord.gg/LIEN";   // ← à remplacer
+const DISCORD_URL         = "https://discord.gg/RcjCRNyJDW";   // ← à remplacer
 const CURRENT_CHAMPION    = "";                          // ← Nom du champion (ex: "Dupont") ou "" pour auto-détection depuis les courses
 
 // ==================== MOCK DATA ====================
