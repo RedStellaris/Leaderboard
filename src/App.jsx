@@ -8,7 +8,8 @@ const LOGO = "/logo.png";
 // ==================== CHAMPIONSHIP ====================
 const CHAMPIONSHIP_NAME   = "GT3 Championship";          // ← à personnaliser
 const CHAMPIONSHIP_SEASON = "Saison 2026";               // ← à personnaliser
-const DISCORD_URL         = "https://discord.gg/MtrBMDxCkG";   // ← à remplacer
+const DISCORD_URL         = "https://discord.gg/LIEN";   // ← à remplacer
+const CURRENT_CHAMPION    = "";                          // ← Nom du champion (ex: "Dupont") ou "" pour auto-détection depuis les courses
 
 // ==================== MOCK DATA ====================
 const MOCK_DATA = [
@@ -1009,10 +1010,13 @@ export default function App() {
 
   const sessionData = useMemo(()=>data.filter(d=>!d.type||d.type===activeSession),[data,activeSession]);
   const champion = useMemo(()=>{
-    const cd=data.filter(d=>d.type==="course"||!d.type);
-    if (!cd.length) return null;
-    const courses=[...new Set(cd.map(d=>d.course))], pilots=[...new Set(cd.map(d=>d.pilote))];
-    return cumulativeRanking(cd,pilots,courses)[0]?.pilote;
+    if (CURRENT_CHAMPION) return CURRENT_CHAMPION;
+    // Auto-détection : priorité aux courses, sinon toutes sessions
+    const cd = data.filter(d=>d.type==="course");
+    const src = cd.length ? cd : data;
+    if (!src.length) return null;
+    const courses=[...new Set(src.map(d=>d.course))], pilots=[...new Set(src.map(d=>d.pilote))];
+    return cumulativeRanking(src,pilots,courses)[0]?.pilote ?? null;
   }, [data]);
 
   // ── Page d'accueil ──────────────────────────────────────────────────────
