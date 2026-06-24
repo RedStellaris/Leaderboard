@@ -139,6 +139,14 @@ export default async function handler(req, res) {
     records:         {},  // "type|circuit|pilote" → { ms, temps }
   };
 
+  // ── Migration : champs absents des anciennes versions du state ────────────
+  if (!state.records)                      state.records        = {};
+  if (state.lastType    === undefined)     state.lastType       = null;
+  if (state.lastCircuit === undefined)     state.lastCircuit    = null;
+  if (state.inactivitySent === undefined)  state.inactivitySent = true;
+  if (state.lastChangeAt === undefined)    state.lastChangeAt   = now;
+  // ─────────────────────────────────────────────────────────────────────────
+
   let changed = false;
 
   // ── 1. GitHub ─────────────────────────────────────────────────────────────
@@ -239,8 +247,8 @@ export default async function handler(req, res) {
             { name: "Session",  value: r.type   || "–",          inline: true  },
             { name: "Temps",    value: `\`${r.temps}\``,         inline: true  },
           );
-          if (r.position)   fields.push({ name: "Position",     value: `P${r.position}`,   inline: true });
-          if (r.pos_depart) fields.push({ name: "Grille départ",value: `P${r.pos_depart}`, inline: true });
+          if (r.position)   fields.push({ name: "Position",      value: `P${r.position}`,   inline: true });
+          if (r.pos_depart) fields.push({ name: "Grille départ", value: `P${r.pos_depart}`, inline: true });
         } else {
           fields.push(
             { name: "Modifications", value: `${changedRows.length} temps mis à jour`, inline: false },
@@ -269,12 +277,12 @@ export default async function handler(req, res) {
               title:       "🏆 NOUVEAU RECORD !",
               color:       COLOR_GOLD,
               fields: [
-                { name: "Pilote",        value: rec.row.pilote,       inline: true  },
-                { name: "Circuit",       value: rec.row.course,       inline: true  },
-                { name: "Session",       value: rec.row.type,         inline: true  },
-                { name: "Nouveau temps", value: `\`${rec.row.temps}\``, inline: true },
-                { name: "Ancien record", value: `\`${rec.oldTemps}\``,  inline: true },
-                { name: "Gain",          value: `**-${gainS}s**`,       inline: true },
+                { name: "Pilote",        value: rec.row.pilote,          inline: true },
+                { name: "Circuit",       value: rec.row.course,          inline: true },
+                { name: "Session",       value: rec.row.type,            inline: true },
+                { name: "Nouveau temps", value: `\`${rec.row.temps}\``,  inline: true },
+                { name: "Ancien record", value: `\`${rec.oldTemps}\``,   inline: true },
+                { name: "Gain",          value: `**-${gainS}s**`,        inline: true },
               ],
               timestamp: new Date().toISOString(),
               footer:    { text: "Leaderboard GT3" },
@@ -324,7 +332,7 @@ export default async function handler(req, res) {
         });
       }
       fields.push(
-        { name: "Dernière modification", value: heure,           inline: true },
+        { name: "Dernière modification", value: heure,            inline: true },
         { name: "Inactivité",            value: `${minutes} min`, inline: true },
       );
 
