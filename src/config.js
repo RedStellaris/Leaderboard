@@ -4,6 +4,7 @@ export const LOGO = "/logo.png";
 export const CHAMPIONSHIP_NAME   = "GT3 Championship";   // ← à personnaliser
 export const CHAMPIONSHIP_SEASON = "Saison 2026";        // ← à personnaliser
 export const DISCORD_URL         = "https://discord.gg/MtrBMDxCkG"; // ← à remplacer
+export const CURRENT_CHAMPION    = "";                   // ← Nom du champion ou "" pour auto-détection
 
 export const SHEET_ID = "1mABgHcqT9kzriAIuscMitRH72WuWJmYUOtxDmnKGSRg";
 
@@ -21,6 +22,34 @@ export const C = {
   text: "#EEEEF5", soft: "#6A6A80", border: "#222230",
 };
 
+// ==================== QUIZ ====================
+export const QUIZ_MAX_ATTEMPTS   = 3;
+export const QUIZ_BLOCK_MS       = 10 * 60 * 1000; // 10 minutes
+
+export const QUIZ_QUESTIONS_BASE = [
+  {
+    id: "q1",
+    question: "Que signifie AMCR ?",
+    options: [
+      { text: "Automobile Motorsport Club Roblox",      correct: true  },
+      { text: "Advanced Motorsport Championship Racing", correct: false },
+      { text: "Advanced Motor Cup Racing",              correct: false },
+      { text: "Advanced Motorists' Cup Racing",         correct: false },
+    ],
+  },
+  {
+    id: "q2",
+    question: "Quels sont les circuits proposés ?",
+    options: [
+      { text: "Monza, SPA, Suzuka, Nürburgring (nord), Le Mans",           correct: true  },
+      { text: "Daytona, Monaco, Nürburgring (sud), SPA, Silverstone",      correct: false },
+      { text: "Monza, Suzuka, Le Mans, SPA, Sebring",                      correct: false },
+      { text: "SPA, Monaco, Nürburgring (sud), Nürburgring (nord), Monza", correct: false },
+    ],
+  },
+];
+
+// ==================== MOCK DATA ====================
 export const MOCK_DATA = [
   // Essais
   { pilote:"Leclerc",    numero:"16", ecurie:"Ferrari",  course:"Circuit de l'Aube", temps:"01:23.456", date:"2026-05-10", type:"essais",         position:"2"                 },

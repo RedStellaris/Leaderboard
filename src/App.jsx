@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect } from "react";
-import { MOCK_DATA, SESSIONS, C, LOGO } from "./config.js";
+import { MOCK_DATA, SESSIONS, C, LOGO, CURRENT_CHAMPION } from "./config.js";
 import { fetchSheetData } from "./utils/sheetsFetch.js";
 import { computeTimeAgo } from "./utils/timeUtils.js";
 import { cumulativeRanking } from "./logic/ranking.js";
-import { Spinner }    from "./components/atoms/Spinner.jsx";
-import { HeaderBtn }  from "./components/atoms/Pill.jsx";
+import { Spinner }     from "./components/atoms/Spinner.jsx";
+import { HeaderBtn }   from "./components/atoms/Pill.jsx";
 import { SessionView } from "./components/views/SessionView.jsx";
+import { QuizPage }    from "./components/views/QuizPage.jsx";
 import { LandingPage } from "./components/views/LandingPage.jsx";
 import { Converter }   from "./components/modals/Converter.jsx";
 import { PilotModal }  from "./components/modals/PilotModal.jsx";
@@ -16,7 +17,10 @@ const CACHE_DURATION = 5 * 60 * 1000;
 
 export default function App() {
   const [data,           setData]          = useState(MOCK_DATA);
-  const [page,           setPage]          = useState("home");
+  const [page,           setPage]          = useState(() => {
+    try { return localStorage.getItem("quiz_passed") === "true" ? "home" : "quiz"; }
+    catch { return "quiz"; }
+  });
   const [activeSession,  setActiveSession]  = useState("essais");
   const [showSheet,      setShowSheet]      = useState(false);
   const [showConverter,  setShowConverter]  = useState(false);
@@ -109,19 +113,24 @@ export default function App() {
 
   const sessionData = useMemo(() => data.filter(d => !d.type || d.type === activeSession), [data, activeSession]);
   const champion    = useMemo(() => {
-    const cd = data.filter(d => d.type === "course" || !d.type);
-    if (!cd.length) return null;
-    const courses = [...new Set(cd.map(d => d.course))];
-    const pilots  = [...new Set(cd.map(d => d.pilote))];
-    return cumulativeRanking(cd, pilots, courses)[0]?.pilote;
+    if (CURRENT_CHAMPION) return CURRENT_CHAMPION;
+    const cd  = data.filter(d => d.type === "course");
+    const src = cd.length ? cd : data;
+    if (!src.length) return null;
+    const courses = [...new Set(src.map(d => d.course))];
+    const pilots  = [...new Set(src.map(d => d.pilote))];
+    return cumulativeRanking(src, pilots, courses)[0]?.pilote ?? null;
   }, [data]);
 
   const sessionLabel = SESSIONS.find(s => s.key === activeSession)?.label || activeSession;
 
-  // ── Landing ────────────────────────────────────────────────────────────────
+  // ── Quiz d'accès ────────────────────────────────────────────────────────────
+  if (page === "quiz") return <QuizPage onPass={() => setPage("home")} onSavePilot={savePilot} />;
+
+  // ── Landing ─────────────────────────────────────────────────────────────────
   if (page === "home") return <LandingPage champion={champion} onEnter={() => setPage("leaderboard")} />;
 
-  // ── Mode affichage ──────────────────────────────────────────────────────────
+  // ── Mode affichage ───────────────────────────────────────────────────────────
   if (displayMode) return (
     <div style={{ position: "fixed", inset: 0, background: C.bg, zIndex: 500, overflowY: "auto", fontFamily: "'Inter',system-ui,sans-serif", color: C.text }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 24px", borderBottom: `1px solid ${C.border}`, background: "#0D0D14" }}>
@@ -144,11 +153,9 @@ export default function App() {
     </div>
   );
 
-  // ── Vue normale ─────────────────────────────────────────────────────────────
+  // ── Vue normale ──────────────────────────────────────────────────────────────
   return (
     <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Inter',system-ui,sans-serif", color: C.text }}>
-
-      {/* HEADER */}
       <div style={{ background: "linear-gradient(160deg,#0E0E16 0%,#110610 100%)", borderBottom: `1px solid ${C.border}`, padding: "22px 20px 18px" }}>
         <div style={{ maxWidth: 960, margin: "0 auto" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
@@ -183,8 +190,6 @@ export default function App() {
           {isMock && !autoErr && <p style={{ color: C.soft, fontSize: "0.7rem", margin: "8px 0 0" }}>Chargement des données…</p>}
         </div>
       </div>
-
-      {/* SESSION TABS */}
       <div style={{ background: "#0D0D14", borderBottom: `1px solid ${C.border}`, overflowX: "auto" }}>
         <div style={{ maxWidth: 960, margin: "0 auto", display: "flex" }}>
           {SESSIONS.map(s => {
@@ -193,16 +198,11 @@ export default function App() {
           })}
         </div>
       </div>
-
-      {/* CONTENT */}
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "24px 16px" }}>
         {loading ? <Spinner /> : <SessionView key={activeSession} sessionData={sessionData} isRace={activeSession === "course"} myPilot={myPilot} display={false} sessionLabel={sessionLabel} />}
       </div>
-
       {showConverter  && <Converter  onClose={() => setShowConverter(false)} />}
       {showPilotModal && <PilotModal current={myPilot} onSave={savePilot} onClose={() => setShowPilotModal(false)} />}
-
-      {/* FOOTER */}
       <div style={{ textAlign: "center", padding: "14px", color: C.soft, fontSize: "0.7rem", borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "center", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
         {isMock ? <span>Mode démonstration</span> : <span>{data.length} entrées · {[...new Set(data.map(d => d.pilote))].length} pilotes</span>}
         {lastUpdate && !isMock && <span style={{ color: C.border, fontSize: "0.65rem" }}>|</span>}
