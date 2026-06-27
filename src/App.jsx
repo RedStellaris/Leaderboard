@@ -17,8 +17,13 @@ import { AvgCalculator } from "./components/modals/AvgCalculator.jsx";
 // Normalise DD/MM/YYYY HH:MM:SS (format Google Sheets) → YYYY-MM-DDTHH:MM:SS
 function normalizeDate(str) {
   if (!str) return "";
-  const m = str.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}:\d{2}:\d{2})$/);
-  return m ? `${m[3]}-${m[2]}-${m[1]}T${m[4]}` : str;
+  // DD/MM/YYYY HH:MM:SS → ISO
+  const mDMY = str.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}:\d{2}:\d{2})$/);
+  if (mDMY) return `${mDMY[3]}-${mDMY[2]}-${mDMY[1]}T${mDMY[4]}`;
+  // YYYY-MM-DD HH:MM:SS → ISO (espace → T)
+  const mYMD = str.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})$/);
+  if (mYMD) return `${mYMD[1]}T${mYMD[2]}`;
+  return str; // déjà ISO ou format inconnu
 }
 
 const CACHE_KEY      = "leaderboard_gt3_cache";
