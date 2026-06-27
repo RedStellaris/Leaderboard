@@ -14,6 +14,13 @@ import { PilotModal }  from "./components/modals/PilotModal.jsx";
 import { SheetsLoader }    from "./components/modals/SheetsLoader.jsx";
 import { AvgCalculator } from "./components/modals/AvgCalculator.jsx";
 
+// Normalise DD/MM/YYYY HH:MM:SS (format Google Sheets) → YYYY-MM-DDTHH:MM:SS
+function normalizeDate(str) {
+  if (!str) return "";
+  const m = str.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}:\d{2}:\d{2})$/);
+  return m ? `${m[3]}-${m[2]}-${m[1]}T${m[4]}` : str;
+}
+
 const CACHE_KEY      = "leaderboard_gt3_cache";
 const CACHE_DURATION = 5 * 60 * 1000;
 
@@ -80,7 +87,7 @@ export default function App() {
         sessionStorage.setItem(CACHE_KEY, JSON.stringify({ rows, ts: now.getTime() }));
       } catch (e) { setAutoErr(e.message); }
       finally { setLoading(false); }
-      try { const cfg = await fetchSheetConfig(); if (cfg.next_session) setNextSessionDate(cfg.next_session); } catch {}
+      try { const cfg = await fetchSheetConfig(); if (cfg.next_session) setNextSessionDate(normalizeDate(cfg.next_session)); } catch {}
     }
     load();
   }, []);
