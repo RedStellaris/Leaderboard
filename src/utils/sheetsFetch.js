@@ -7,10 +7,13 @@ export async function fetchSheetConfig() {
     const text = await res.text();
     const [header, ...lines] = text.trim().split("\n");
     const keys = header.split(",").map(k => k.trim().replace(/"/g, "").toLowerCase());
+    // Utilise les indices au lieu des noms (gère clé/cle/key… peu importe l'accent)
+    const k0 = keys[0]; // colonne "clé"
+    const k1 = keys[1]; // colonne "valeur"
     const cfg = {};
     lines.forEach(l => {
-      const row = Object.fromEntries(l.split(",").map((v, i) => [keys[i], v.trim().replace(/"/g, "")]));
-      if (row.cle && row.valeur !== undefined) cfg[row.cle] = row.valeur;
+      const vals = l.split(",").map(v => v.trim().replace(/"/g, ""));
+      if (vals[0] && vals[1] !== undefined) cfg[vals[0]] = vals[1];
     });
     return cfg;
   } catch { return {}; }
