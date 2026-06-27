@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { MOCK_DATA, SESSIONS, C, LOGO, CURRENT_CHAMPION } from "./config.js";
+import { MOCK_DATA, SESSIONS, C, LOGO, CURRENT_CHAMPION, NEXT_SESSION_DATE, DISCORD_URL } from "./config.js";
 import { fetchSheetData } from "./utils/sheetsFetch.js";
 import { computeTimeAgo } from "./utils/timeUtils.js";
 import { cumulativeRanking } from "./logic/ranking.js";
@@ -7,7 +7,8 @@ import { Spinner }     from "./components/atoms/Spinner.jsx";
 import { HeaderBtn }   from "./components/atoms/Pill.jsx";
 import { SessionView } from "./components/views/SessionView.jsx";
 import { QuizPage }    from "./components/views/QuizPage.jsx";
-import { LandingPage } from "./components/views/LandingPage.jsx";
+import { LandingPage }      from "./components/views/LandingPage.jsx";
+import { PredictionPanel } from "./components/views/PredictionPanel.jsx";
 import { Converter }   from "./components/modals/Converter.jsx";
 import { PilotModal }  from "./components/modals/PilotModal.jsx";
 import { SheetsLoader }    from "./components/modals/SheetsLoader.jsx";
@@ -31,6 +32,7 @@ export default function App() {
   const [loading,        setLoading]        = useState(true);
   const [lastUpdate,     setLastUpdate]     = useState(null);
   const [timeAgoStr,     setTimeAgoStr]     = useState("");
+  const [countdown,      setCountdown]      = useState("");
   const [autoErr,        setAutoErr]        = useState("");
   const [myPilot,        setMyPilot]        = useState(() => {
     try { return localStorage.getItem("leaderboard_myPilot") || ""; } catch { return ""; }
@@ -106,6 +108,23 @@ export default function App() {
     return () => clearInterval(id);
   }, []);
 
+  // Compte à rebours
+  useEffect(() => {
+    if (!NEXT_SESSION_DATE) return;
+    function tick() {
+      const diff = new Date(NEXT_SESSION_DATE) - Date.now();
+      if (diff <= 0) { setCountdown(""); return; }
+      const d = Math.floor(diff / 86400000);
+      const h = Math.floor((diff % 86400000) / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setCountdown(`${d}j ${String(h).padStart(2,"0")}h ${String(m).padStart(2,"0")}m ${String(s).padStart(2,"0")}s`);
+    }
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+
   // Police Rajdhani
   useEffect(() => {
     const link = document.createElement("link"); link.rel = "stylesheet";
@@ -175,12 +194,15 @@ export default function App() {
                 <div style={{ background: `linear-gradient(135deg,${C.accentDim}55,#1a100222)`, border: `1px solid ${C.gold}33`, borderRadius: 8, padding: "8px 18px", textAlign: "center" }}>
                   <div style={{ color: C.gold, fontSize: "0.62rem", letterSpacing: "0.15em", fontWeight: 700, marginBottom: 3 }}>🏆 CHAMPION</div>
                   <div style={{ fontFamily: "'Rajdhani',sans-serif", fontSize: "1.4rem", fontWeight: 700, color: C.gold }}>{champion}</div>
+                  {countdown && <div style={{ color:C.soft, fontSize:"0.7rem", letterSpacing:"0.08em", marginTop:4 }}>⏱ {countdown}</div>}
                 </div>
               )}
               <HeaderBtn onClick={() => setShowPilotModal(true)}>👤 {myPilot || "Mon pilote"}</HeaderBtn>
               <HeaderBtn onClick={() => setShowConverter(true)}>⏱ Convertisseur</HeaderBtn>
               <HeaderBtn onClick={() => setShowAvgCalc(true)}>⌀ Moyenne</HeaderBtn>
               <HeaderBtn onClick={toggleDisplay}>🖥️ Affichage</HeaderBtn>
+              <HeaderBtn onClick={() => setPage("home")}>← Accueil</HeaderBtn>
+              <a href={DISCORD_URL} target="_blank" rel="noopener noreferrer" style={{ textDecoration:"none" }}><HeaderBtn>💬 Discord</HeaderBtn></a>
             </div>
           </div>
           <div style={{ marginTop: 14 }}>
@@ -203,6 +225,7 @@ export default function App() {
       </div>
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "24px 16px" }}>
         {loading ? <Spinner /> : <SessionView key={activeSession} sessionData={sessionData} isRace={activeSession === "course"} myPilot={myPilot} display={false} sessionLabel={sessionLabel} />}
+        {!loading && activeSession === "course" && <PredictionPanel data={data} />}
       </div>
       {showConverter  && <Converter     onClose={() => setShowConverter(false)} />}
       {showAvgCalc   && <AvgCalculator onClose={() => setShowAvgCalc(false)} />}

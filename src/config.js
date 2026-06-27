@@ -5,6 +5,7 @@ export const CHAMPIONSHIP_NAME   = "GT3 Championship";   // ← à personnaliser
 export const CHAMPIONSHIP_SEASON = "Saison 2026";        // ← à personnaliser
 export const DISCORD_URL         = "https://discord.gg/MtrBMDxCkG"; // ← à remplacer
 export const CURRENT_CHAMPION    = "";                   // ← Nom du champion ou "" pour auto-détection
+export const NEXT_SESSION_DATE   = "";                   // ← "2026-07-15T18:00:00" ou "" pour désactiver
 
 export const SHEET_ID = "1mABgHcqT9kzriAIuscMitRH72WuWJmYUOtxDmnKGSRg";
 
