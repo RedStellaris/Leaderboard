@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
-import { MOCK_DATA, SESSIONS, C, LOGO, CURRENT_CHAMPION, NEXT_SESSION_DATE, DISCORD_URL } from "./config.js";
-import { fetchSheetData } from "./utils/sheetsFetch.js";
+import { MOCK_DATA, SESSIONS, C, LOGO, CURRENT_CHAMPION, DISCORD_URL } from "./config.js";
+import { fetchSheetData, fetchSheetConfig } from "./utils/sheetsFetch.js";
 import { computeTimeAgo } from "./utils/timeUtils.js";
 import { cumulativeRanking } from "./logic/ranking.js";
 import { Spinner }     from "./components/atoms/Spinner.jsx";
@@ -33,12 +33,12 @@ export default function App() {
   const [lastUpdate,     setLastUpdate]     = useState(null);
   const [timeAgoStr,     setTimeAgoStr]     = useState("");
   const [countdown,      setCountdown]      = useState("");
+  const [nextSessionDate, setNextSessionDate] = useState("");
   const [autoErr,        setAutoErr]        = useState("");
   const [myPilot,        setMyPilot]        = useState(() => {
     try { return localStorage.getItem("leaderboard_myPilot") || ""; } catch { return ""; }
   });
-  const isMock   = data === MOCK_DATA;
-  const isAdmin  = myPilot.trim().toUpperCase() === "ADMIN";
+  const isMock = data === MOCK_DATA;
 
   function savePilot(name) {
     setMyPilot(name);
@@ -78,6 +78,8 @@ export default function App() {
         setData(rows); setLastUpdate(now); setTimeAgoStr(computeTimeAgo(now)); setAutoErr("");
         sessionStorage.setItem(CACHE_KEY, JSON.stringify({ rows, ts: now.getTime() }));
       } catch (e) { setAutoErr(e.message); }
+      // Config sheet (next_session…)
+      try { const cfg = await fetchSheetConfig(); if (cfg.next_session) setNextSessionDate(cfg.next_session); } catch {}
       finally { setLoading(false); }
     }
     load();
@@ -109,11 +111,11 @@ export default function App() {
     return () => clearInterval(id);
   }, []);
 
-  // Compte à rebours
+  // Compte à rebours — lu depuis l'onglet "config" du Google Sheet
   useEffect(() => {
-    if (!NEXT_SESSION_DATE) return;
+    if (!nextSessionDate) { setCountdown(""); return; }
     function tick() {
-      const diff = new Date(NEXT_SESSION_DATE) - Date.now();
+      const diff = new Date(nextSessionDate) - Date.now();
       if (diff <= 0) { setCountdown(""); return; }
       const d = Math.floor(diff / 86400000);
       const h = Math.floor((diff % 86400000) / 3600000);
@@ -124,7 +126,7 @@ export default function App() {
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [nextSessionDate]);
 
   // Police Rajdhani
   useEffect(() => {
@@ -199,8 +201,8 @@ export default function App() {
                 </div>
               )}
               <HeaderBtn onClick={() => setShowPilotModal(true)}>👤 {myPilot || "Mon pilote"}</HeaderBtn>
-              {isAdmin && <HeaderBtn onClick={() => setShowConverter(true)}>⏱ Convertisseur</HeaderBtn>}
-              {isAdmin && <HeaderBtn onClick={() => setShowAvgCalc(true)}>⌀ Moyenne</HeaderBtn>}
+              <HeaderBtn onClick={() => setShowConverter(true)}>⏱ Convertisseur</HeaderBtn>
+              <HeaderBtn onClick={() => setShowAvgCalc(true)}>⌀ Moyenne</HeaderBtn>
               <HeaderBtn onClick={toggleDisplay}>🖥️ Affichage</HeaderBtn>
               <HeaderBtn onClick={() => setPage("home")}>← Accueil</HeaderBtn>
               <a href={DISCORD_URL} target="_blank" rel="noopener noreferrer" style={{ textDecoration:"none" }}><HeaderBtn>💬 Discord</HeaderBtn></a>
@@ -228,8 +230,8 @@ export default function App() {
         {loading ? <Spinner /> : <SessionView key={activeSession} sessionData={sessionData} isRace={activeSession === "course"} myPilot={myPilot} display={false} sessionLabel={sessionLabel} />}
         {!loading && activeSession === "course" && <PredictionPanel data={data} />}
       </div>
-      {isAdmin && showConverter && <Converter     onClose={() => setShowConverter(false)} />}
-      {isAdmin && showAvgCalc   && <AvgCalculator onClose={() => setShowAvgCalc(false)} />}
+      {showConverter  && <Converter     onClose={() => setShowConverter(false)} />}
+      {showAvgCalc   && <AvgCalculator onClose={() => setShowAvgCalc(false)} />}
       {showPilotModal && <PilotModal current={myPilot} onSave={savePilot} onClose={() => setShowPilotModal(false)} />}
       <div style={{ textAlign: "center", padding: "14px", color: C.soft, fontSize: "0.7rem", borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "center", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
         {isMock ? <span>Mode démonstration</span> : <span>{data.length} entrées · {[...new Set(data.map(d => d.pilote))].length} pilotes</span>}

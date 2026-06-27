@@ -1,5 +1,21 @@
 import { SHEET_ID } from "../config.js";
 
+export async function fetchSheetConfig() {
+  try {
+    const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&sheet=config`);
+    if (!res.ok) return {};
+    const text = await res.text();
+    const [header, ...lines] = text.trim().split("\n");
+    const keys = header.split(",").map(k => k.trim().replace(/"/g, "").toLowerCase());
+    const cfg = {};
+    lines.forEach(l => {
+      const row = Object.fromEntries(l.split(",").map((v, i) => [keys[i], v.trim().replace(/"/g, "")]));
+      if (row.cle && row.valeur !== undefined) cfg[row.cle] = row.valeur;
+    });
+    return cfg;
+  } catch { return {}; }
+}
+
 export async function fetchSheetData() {
   const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`);
   if (!res.ok) throw new Error("Feuille inaccessible — partagez-la en public (Lecteur)");
