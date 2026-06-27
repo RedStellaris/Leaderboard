@@ -10,7 +10,8 @@ import { QuizPage }    from "./components/views/QuizPage.jsx";
 import { LandingPage } from "./components/views/LandingPage.jsx";
 import { Converter }   from "./components/modals/Converter.jsx";
 import { PilotModal }  from "./components/modals/PilotModal.jsx";
-import { SheetsLoader } from "./components/modals/SheetsLoader.jsx";
+import { SheetsLoader }    from "./components/modals/SheetsLoader.jsx";
+import { AvgCalculator } from "./components/modals/AvgCalculator.jsx";
 
 const CACHE_KEY      = "leaderboard_gt3_cache";
 const CACHE_DURATION = 5 * 60 * 1000;
@@ -24,6 +25,7 @@ export default function App() {
   const [activeSession,  setActiveSession]  = useState("essais");
   const [showSheet,      setShowSheet]      = useState(false);
   const [showConverter,  setShowConverter]  = useState(false);
+  const [showAvgCalc,    setShowAvgCalc]    = useState(false);
   const [showPilotModal, setShowPilotModal] = useState(false);
   const [displayMode,    setDisplayMode]    = useState(false);
   const [loading,        setLoading]        = useState(true);
@@ -177,6 +179,7 @@ export default function App() {
               )}
               <HeaderBtn onClick={() => setShowPilotModal(true)}>👤 {myPilot || "Mon pilote"}</HeaderBtn>
               <HeaderBtn onClick={() => setShowConverter(true)}>⏱ Convertisseur</HeaderBtn>
+              <HeaderBtn onClick={() => setShowAvgCalc(true)}>⌀ Moyenne</HeaderBtn>
               <HeaderBtn onClick={toggleDisplay}>🖥️ Affichage</HeaderBtn>
             </div>
           </div>
@@ -201,7 +204,8 @@ export default function App() {
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "24px 16px" }}>
         {loading ? <Spinner /> : <SessionView key={activeSession} sessionData={sessionData} isRace={activeSession === "course"} myPilot={myPilot} display={false} sessionLabel={sessionLabel} />}
       </div>
-      {showConverter  && <Converter  onClose={() => setShowConverter(false)} />}
+      {showConverter  && <Converter     onClose={() => setShowConverter(false)} />}
+      {showAvgCalc   && <AvgCalculator onClose={() => setShowAvgCalc(false)} />}
       {showPilotModal && <PilotModal current={myPilot} onSave={savePilot} onClose={() => setShowPilotModal(false)} />}
       <div style={{ textAlign: "center", padding: "14px", color: C.soft, fontSize: "0.7rem", borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "center", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
         {isMock ? <span>Mode démonstration</span> : <span>{data.length} entrées · {[...new Set(data.map(d => d.pilote))].length} pilotes</span>}
