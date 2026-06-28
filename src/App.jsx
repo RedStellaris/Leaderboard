@@ -13,7 +13,8 @@ import { CircuitRating }  from "./components/views/CircuitRating.jsx";
 import { Converter }   from "./components/modals/Converter.jsx";
 import { PilotModal }  from "./components/modals/PilotModal.jsx";
 import { SheetsLoader }    from "./components/modals/SheetsLoader.jsx";
-import { AvgCalculator } from "./components/modals/AvgCalculator.jsx";
+import { AvgCalculator }    from "./components/modals/AvgCalculator.jsx";
+import { AdminDashboard }  from "./components/views/AdminDashboard.jsx";
 
 // Normalise DD/MM/YYYY HH:MM:SS (format Google Sheets) → YYYY-MM-DDTHH:MM:SS
 function normalizeDate(str) {
@@ -178,6 +179,9 @@ export default function App() {
   // ── Landing ─────────────────────────────────────────────────────────────────
   if (page === "home") return <LandingPage champion={champion} onEnter={() => setPage("leaderboard")} />;
 
+  // ── Dashboard admin ──────────────────────────────────────────────────────────
+  if (page === "admin") return <AdminDashboard data={data} onBack={() => setPage("leaderboard")} />;
+
   // ── Mode affichage ───────────────────────────────────────────────────────────
   if (displayMode) return (
     <div style={{ position: "fixed", inset: 0, background: C.bg, zIndex: 500, overflowY: "auto", fontFamily: "'Inter',system-ui,sans-serif", color: C.text }}>
@@ -226,6 +230,7 @@ export default function App() {
               <HeaderBtn onClick={() => setShowPilotModal(true)}>👤 {myPilot || "Mon pilote"}</HeaderBtn>
               {isAdmin && <HeaderBtn onClick={() => setShowConverter(true)}>⏱ Convertisseur</HeaderBtn>}
               {isAdmin && <HeaderBtn onClick={() => setShowAvgCalc(true)}>⌀ Moyenne</HeaderBtn>}
+              {isAdmin && <HeaderBtn onClick={() => setPage("admin")}>📊 Dashboard</HeaderBtn>}
               <HeaderBtn onClick={toggleDisplay}>🖥️ Affichage</HeaderBtn>
               <HeaderBtn onClick={() => setPage("home")}>← Accueil</HeaderBtn>
               <a href={DISCORD_URL} target="_blank" rel="noopener noreferrer" style={{ textDecoration:"none" }}><HeaderBtn>💬 Discord</HeaderBtn></a>
