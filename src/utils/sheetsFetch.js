@@ -2,21 +2,21 @@ import { SHEET_ID } from "../config.js";
 
 export async function fetchSheetConfig() {
   try {
-    const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&sheet=config`);
-    if (!res.ok) return {};
+    // gviz/tq est la méthode fiable pour cibler un onglet par nom
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=config`;
+    const res = await fetch(url);
+    if (!res.ok) { console.warn("[config] fetch échoué :", res.status); return {}; }
     const text = await res.text();
-    const [header, ...lines] = text.trim().split("\n");
-    const keys = header.split(",").map(k => k.trim().replace(/"/g, "").toLowerCase());
-    // Utilise les indices au lieu des noms (gère clé/cle/key… peu importe l'accent)
-    const k0 = keys[0]; // colonne "clé"
-    const k1 = keys[1]; // colonne "valeur"
+    console.log("[config] CSV brut :", text.slice(0, 200)); // debug — à retirer après confirmation
+    const [, ...lines] = text.trim().split("\n");
     const cfg = {};
     lines.forEach(l => {
       const vals = l.split(",").map(v => v.trim().replace(/"/g, ""));
       if (vals[0] && vals[1] !== undefined) cfg[vals[0]] = vals[1];
     });
+    console.log("[config] cfg parsé :", cfg); // debug
     return cfg;
-  } catch { return {}; }
+  } catch (e) { console.error("[config] erreur :", e); return {}; }
 }
 
 export async function fetchSheetData() {
