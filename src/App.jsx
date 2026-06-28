@@ -92,9 +92,16 @@ export default function App() {
         sessionStorage.setItem(CACHE_KEY, JSON.stringify({ rows, ts: now.getTime() }));
       } catch (e) { setAutoErr(e.message); }
       finally { setLoading(false); }
-      try { const cfg = await fetchSheetConfig(); if (cfg.next_session) setNextSessionDate(normalizeDate(cfg.next_session)); } catch {}
+    }
+    // Toujours exécuté, même en cas de cache — hors de load()
+    async function loadConfig() {
+      try {
+        const cfg = await fetchSheetConfig();
+        if (cfg.next_session) setNextSessionDate(normalizeDate(cfg.next_session));
+      } catch {}
     }
     load();
+    loadConfig();
   }, []);
 
   // Mise à jour du "il y a Xmin"
