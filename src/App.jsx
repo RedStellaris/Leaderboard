@@ -216,7 +216,6 @@ export default function App() {
                 <div style={{ background: `linear-gradient(135deg,${C.accentDim}55,#1a100222)`, border: `1px solid ${C.gold}33`, borderRadius: 8, padding: "8px 18px", textAlign: "center" }}>
                   <div style={{ color: C.gold, fontSize: "0.62rem", letterSpacing: "0.15em", fontWeight: 700, marginBottom: 3 }}>🏆 CHAMPION</div>
                   <div style={{ fontFamily: "'Rajdhani',sans-serif", fontSize: "1.4rem", fontWeight: 700, color: C.gold }}>{champion}</div>
-                  {countdown && <div style={{ color:C.soft, fontSize:"0.7rem", letterSpacing:"0.08em", marginTop:4 }}>⏱ {countdown}</div>}
                 </div>
               )}
               <HeaderBtn onClick={() => setShowPilotModal(true)}>👤 {myPilot || "Mon pilote"}</HeaderBtn>
@@ -227,6 +226,11 @@ export default function App() {
               <a href={DISCORD_URL} target="_blank" rel="noopener noreferrer" style={{ textDecoration:"none" }}><HeaderBtn>💬 Discord</HeaderBtn></a>
             </div>
           </div>
+          {countdown && (
+            <div style={{ marginTop: 10, color: C.soft, fontSize: "0.75rem", letterSpacing: "0.1em", fontVariantNumeric: "tabular-nums" }}>
+              ⏱ Prochaine session dans <span style={{ color: C.text, fontFamily: "'Rajdhani',sans-serif", fontWeight: 700, fontSize: "0.9rem" }}>{countdown}</span>
+            </div>
+          )}
           <div style={{ marginTop: 14 }}>
             <button onClick={() => setShowSheet(v => !v)} style={{ background: "transparent", border: `1px solid ${C.border}`, color: C.soft, padding: "5px 12px", borderRadius: 6, cursor: "pointer", fontSize: "0.75rem", display: "flex", alignItems: "center", gap: 6 }}>
               📊 {isMock ? "Connecter Google Sheets" : "Changer de feuille"}
