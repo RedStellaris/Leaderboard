@@ -9,6 +9,7 @@ import { SessionView } from "./components/views/SessionView.jsx";
 import { QuizPage }    from "./components/views/QuizPage.jsx";
 import { LandingPage }      from "./components/views/LandingPage.jsx";
 import { PredictionPanel } from "./components/views/PredictionPanel.jsx";
+import { CircuitRating }  from "./components/views/CircuitRating.jsx";
 import { Converter }   from "./components/modals/Converter.jsx";
 import { PilotModal }  from "./components/modals/PilotModal.jsx";
 import { SheetsLoader }    from "./components/modals/SheetsLoader.jsx";
@@ -165,7 +166,11 @@ export default function App() {
     return cumulativeRanking(src, pilots, courses)[0]?.pilote ?? null;
   }, [data]);
 
-  const sessionLabel = SESSIONS.find(s => s.key === activeSession)?.label || activeSession;
+  const sessionLabel   = SESSIONS.find(s => s.key === activeSession)?.label || activeSession;
+  const currentCircuit = useMemo(() => {
+    const rows = data.filter(d => d.type === "course" && d.course);
+    return rows.length ? rows[rows.length - 1].course : null;
+  }, [data]);
 
   // ── Quiz d'accès ────────────────────────────────────────────────────────────
   if (page === "quiz") return <QuizPage onPass={() => setPage("home")} onSavePilot={savePilot} />;
@@ -252,6 +257,7 @@ export default function App() {
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "24px 16px" }}>
         {loading ? <Spinner /> : <SessionView key={activeSession} sessionData={sessionData} isRace={activeSession === "course"} myPilot={myPilot} display={false} sessionLabel={sessionLabel} />}
         {!loading && activeSession === "course" && <PredictionPanel data={data} />}
+        {!loading && activeSession === "course" && <CircuitRating circuit={currentCircuit} myPilot={myPilot} />}
       </div>
       {isAdmin && showConverter && <Converter     onClose={() => setShowConverter(false)} />}
       {isAdmin && showAvgCalc   && <AvgCalculator onClose={() => setShowAvgCalc(false)} />}
