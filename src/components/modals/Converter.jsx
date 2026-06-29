@@ -7,7 +7,7 @@ export function Converter({ onClose }) {
   const [err,  setErr]  = useState("");
 
   function toTotalMs(str) {
-    const m = str.trim().match(/^(\d{1,2}):(\d{2})\.(\d{1,3})$/);
+    const m = str.trim().match(/^(\d{1,2}):(\d{2}),(\d{1,3})$/);
     if (!m) return null;
     const [, mm, ss, dec] = m;
     return parseInt(mm) * 60000 + parseInt(ss) * 1000 + parseInt(dec.padEnd(3, "0"));
@@ -15,22 +15,22 @@ export function Converter({ onClose }) {
   function fromTotalMs(ms) {
     const mm = Math.floor(ms / 60000), ss = Math.floor((ms % 60000) / 1000), dec = ms % 1000;
     return {
-      mmss: `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}.${String(dec).padStart(3, "0")}`,
-      sss:  `${Math.floor(ms / 1000)}.${String(dec).padStart(3, "0")}`,
+      mmss: `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")},${String(dec).padStart(3, "0")}`,
+      sss:  `${Math.floor(ms / 1000)},${String(dec).padStart(3, "0")}`,
     };
   }
   function handleMmss(val) {
     setMmss(val); setErr("");
     const ms = toTotalMs(val);
     if (ms !== null) setSss(fromTotalMs(ms).sss);
-    else if (val && !val.match(/^[\d:.]*$/)) setErr("Format attendu : mm:ss.cc");
+    else if (val && !val.match(/^[\d:,]*$/)) setErr("Format attendu : mm:ss,cc");
     else setSss("");
   }
   function handleSss(val) {
     setSss(val); setErr("");
-    const m = val.trim().match(/^(\d+)\.(\d{1,3})$/);
+    const m = val.trim().match(/^(\d+),(\d{1,3})$/);
     if (m) { const [, s, dec] = m; const ms = parseInt(s) * 1000 + parseInt(dec.padEnd(3, "0")); setMmss(fromTotalMs(ms).mmss); }
-    else if (val && !val.match(/^[\d.]*$/)) setErr("Format attendu : sss.cc");
+    else if (val && !val.match(/^[\d,]*$/)) setErr("Format attendu : sss,cc");
     else setMmss("");
   }
 
@@ -52,16 +52,16 @@ export function Converter({ onClose }) {
           <button onClick={onClose} style={{ background: "transparent", border: `1px solid ${C.border}`, color: C.soft, width: 32, height: 32, borderRadius: 6, cursor: "pointer", fontSize: "1rem", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
         </div>
         <div style={{ marginBottom: 16 }}>
-          <label style={{ color: C.soft, fontSize: "0.72rem", letterSpacing: "0.1em", fontWeight: 700, display: "block", marginBottom: 6 }}>FORMAT mm:ss.cc</label>
-          <input value={mmss} onChange={e => handleMmss(e.target.value)} placeholder="01:23.456" style={inputStyle} />
+          <label style={{ color: C.soft, fontSize: "0.72rem", letterSpacing: "0.1em", fontWeight: 700, display: "block", marginBottom: 6 }}>FORMAT mm:ss,cc</label>
+          <input value={mmss} onChange={e => handleMmss(e.target.value)} placeholder="01:23,456" style={inputStyle} />
         </div>
         <div style={{ textAlign: "center", color: C.soft, fontSize: "1.2rem", marginBottom: 16 }}>⇅</div>
         <div style={{ marginBottom: 20 }}>
-          <label style={{ color: C.soft, fontSize: "0.72rem", letterSpacing: "0.1em", fontWeight: 700, display: "block", marginBottom: 6 }}>FORMAT sss.cc</label>
-          <input value={sss} onChange={e => handleSss(e.target.value)} placeholder="83.456" style={inputStyle} />
+          <label style={{ color: C.soft, fontSize: "0.72rem", letterSpacing: "0.1em", fontWeight: 700, display: "block", marginBottom: 6 }}>FORMAT sss,cc</label>
+          <input value={sss} onChange={e => handleSss(e.target.value)} placeholder="83,456" style={inputStyle} />
         </div>
         {err && <p style={{ color: C.accent, fontSize: "0.75rem", margin: "0 0 12px", textAlign: "center" }}>⚠ {err}</p>}
-        <p style={{ color: C.soft, fontSize: "0.7rem", margin: 0, textAlign: "center" }}>Exemple : 01:23.456 ↔ 83.456</p>
+        <p style={{ color: C.soft, fontSize: "0.7rem", margin: 0, textAlign: "center" }}>Exemple : 01:23,456 ↔ 83,456</p>
       </div>
     </div>
   );
