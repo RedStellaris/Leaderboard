@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
-import { MOCK_DATA, SESSIONS, C, LOGO, CURRENT_CHAMPION, DISCORD_URL } from "./config.js";
+import { MOCK_DATA, SESSIONS, C, LOGO, CURRENT_CHAMPION, DISCORD_URL, F1_POINTS } from "./config.js";
 import { fetchSheetData, fetchSheetConfig } from "./utils/sheetsFetch.js";
-import { computeTimeAgo } from "./utils/timeUtils.js";
-import { cumulativeRanking } from "./logic/ranking.js";
+import { computeTimeAgo, parseTime, formatTime } from "./utils/timeUtils.js";
+import { cumulativeRanking, pointsRanking } from "./logic/ranking.js";
 import { Spinner }     from "./components/atoms/Spinner.jsx";
 import { HeaderBtn }   from "./components/atoms/Pill.jsx";
 import { SessionView } from "./components/views/SessionView.jsx";
@@ -169,11 +169,42 @@ export default function App() {
     return rows.length ? rows[rows.length - 1].course : null;
   }, [data]);
 
+  // Top 3 pour podium landing (courses uniquement)
+  const top3 = useMemo(() => {
+    const cd = data.filter(d => d.type === "course");
+    if (!cd.length) return [];
+    const courses = [...new Set(cd.map(d => d.course))];
+    const pilots  = [...new Set(cd.map(d => d.pilote))];
+    try { return (pointsRanking(cd, pilots, courses) || []).slice(0, 3); }
+    catch { return []; }
+  }, [data]);
+
+  // Stats rapides pour landing
+  const globalStats = useMemo(() => ({
+    pilots:   new Set(data.map(d => d.pilote)).size,
+    sessions: new Set(data.filter(d => d.type === "course").map(d => `${d.course}|${(d.date || "").slice(0, 10)}`)).size,
+    circuits: new Set(data.map(d => d.course)).size,
+  }), [data]);
+
+  // Infos carte pilote connecté
+  const pilotStats = useMemo(() => {
+    if (!myPilot || isMock) return null;
+    const rows = data.filter(r => r.pilote === myPilot);
+    if (!rows.length) return null;
+    const times  = rows.map(r => parseTime(r.temps)).filter(isFinite);
+    const avgMs  = times.length ? Math.round(times.reduce((a, b) => a + b, 0) / times.length) : null;
+    const ecurie = rows.find(r => r.ecurie)?.ecurie || null;
+    return { ecurie, avg: avgMs ? formatTime(avgMs) : null };
+  }, [data, myPilot, isMock]);
+
+  // Indicateur live (dernière mise à jour < 30 min)
+  const isLive = !!(lastUpdate && !isMock && Date.now() - lastUpdate.getTime() < 30 * 60 * 1000);
+
   // ── Quiz d'accès ────────────────────────────────────────────────────────────
   if (page === "quiz") return <QuizPage onPass={() => setPage("home")} onSavePilot={savePilot} />;
 
   // ── Landing ─────────────────────────────────────────────────────────────────
-  if (page === "home") return <LandingPage champion={champion} onEnter={() => setPage("leaderboard")} />;
+  if (page === "home") return <LandingPage champion={champion} onEnter={() => setPage("leaderboard")} top3={top3} stats={globalStats} />;
 
   // ── Dashboard admin ──────────────────────────────────────────────────────────
   if (page === "admin") return <AdminDashboard data={data} onBack={() => setPage("leaderboard")} />;
@@ -196,14 +227,18 @@ export default function App() {
         </div>
       </div>
       <div style={{ padding: "20px 24px" }}>
-        {loading ? <Spinner /> : <SessionView key={activeSession} sessionData={sessionData} isRace={activeSession === "course"} myPilot={myPilot} display={true} sessionLabel={sessionLabel} />}
+        {loading ? <Spinner /> : <SessionView key={activeSession} sessionData={sessionData} isRace={activeSession === "course"} myPilot={myPilot} display={true} sessionLabel={sessionLabel} data={data} />}
       </div>
     </div>
   );
 
   // ── Vue normale ──────────────────────────────────────────────────────────────
   return (
-    <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Inter',system-ui,sans-serif", color: C.text }}>
+    <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Inter',system-ui,sans-serif", color: C.text, animation: "pageIn 0.3s ease-out" }}>
+      <style>{`
+        @keyframes pageIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes livePulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+      `}</style>
       <div style={{ background: "linear-gradient(160deg,#0E0E16 0%,#110610 100%)", borderBottom: `1px solid ${C.border}`, padding: "22px 20px 18px" }}>
         <div style={{ maxWidth: 960, margin: "0 auto" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
@@ -223,7 +258,27 @@ export default function App() {
                   <div style={{ fontFamily: "'Rajdhani',sans-serif", fontSize: "1.4rem", fontWeight: 700, color: C.gold }}>{champion}</div>
                 </div>
               )}
-              <HeaderBtn onClick={() => setShowPilotModal(true)}>👤 {myPilot || "Mon pilote"}</HeaderBtn>
+              {myPilot ? (
+                <button onClick={() => setShowPilotModal(true)} style={{
+                  background: C.card, border: `1px solid ${C.border}`, borderRadius: 8,
+                  padding: "6px 14px", cursor: "pointer", textAlign: "left",
+                  transition: "border-color 0.15s",
+                }}>
+                  <div style={{ fontSize: "0.6rem", color: C.soft, marginBottom: 1 }}>
+                    👤 {pilotStats?.ecurie || "Pilote"}
+                  </div>
+                  <div style={{ fontFamily: "'Rajdhani',sans-serif", fontSize: "1rem", fontWeight: 700, color: C.text, lineHeight: 1 }}>
+                    {myPilot}
+                  </div>
+                  {pilotStats?.avg && (
+                    <div style={{ fontSize: "0.62rem", color: C.soft, fontFamily: "monospace", marginTop: 1 }}>
+                      moy. {pilotStats.avg}
+                    </div>
+                  )}
+                </button>
+              ) : (
+                <HeaderBtn onClick={() => setShowPilotModal(true)}>👤 Mon pilote</HeaderBtn>
+              )}
               {isAdmin && <HeaderBtn onClick={() => setPage("admin")}>📊 Dashboard</HeaderBtn>}
               <HeaderBtn onClick={toggleDisplay}>🖥️ Affichage</HeaderBtn>
               <HeaderBtn onClick={() => setPage("home")}>← Accueil</HeaderBtn>
@@ -254,7 +309,7 @@ export default function App() {
         </div>
       </div>
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "24px 16px" }}>
-        {loading ? <Spinner /> : <SessionView key={activeSession} sessionData={sessionData} isRace={activeSession === "course"} myPilot={myPilot} display={false} sessionLabel={sessionLabel} />}
+        {loading ? <Spinner /> : <SessionView key={activeSession} sessionData={sessionData} isRace={activeSession === "course"} myPilot={myPilot} display={false} sessionLabel={sessionLabel} data={data} />}
         {!loading && activeSession === "course" && <PredictionPanel data={data} />}
         {!loading && activeSession === "course" && <CircuitRating circuit={currentCircuit} myPilot={myPilot} />}
       </div>
@@ -263,6 +318,12 @@ export default function App() {
         {isMock ? <span>Mode démonstration</span> : <span>{data.length} entrées · {[...new Set(data.map(d => d.pilote))].length} pilotes</span>}
         {lastUpdate && !isMock && <span style={{ color: C.border, fontSize: "0.65rem" }}>|</span>}
         {lastUpdate && !isMock && <span title={lastUpdate.toLocaleString("fr-FR")}>🕐 Mis à jour à {lastUpdate.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })} · {timeAgoStr}</span>}
+        {isLive && (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "#4ade80", fontSize: "0.7rem", fontWeight: 600 }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#4ade80", display: "inline-block", animation: "livePulse 1.5s ease-in-out infinite" }} />
+            En direct
+          </span>
+        )}
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import { cumulativeRanking, pointsRanking } from "../../logic/ranking.js";
 import { GlobalView } from "./GlobalView.jsx";
 import { CourseView } from "./CourseView.jsx";
 
-export function SessionView({ sessionData, isRace, myPilot, display, sessionLabel }) {
+export function SessionView({ sessionData, isRace, myPilot, display, sessionLabel, data }) {
   const [activeTab, setActiveTab] = useState("global");
   const [sub, setSub]             = useState("cumul");
 
@@ -36,7 +36,7 @@ export function SessionView({ sessionData, isRace, myPilot, display, sessionLabe
       </div>
       {activeTab === "global"
         ? <GlobalView sub={sub} setSub={setSub} cumul={cumul} pts={pts} courses={courses} data={sessionData} myPilot={myPilot} display={display} sessionLabel={sessionLabel} />
-        : <CourseView course={activeTab} data={sessionData} isRace={isRace} myPilot={myPilot} display={display} sessionLabel={sessionLabel} />}
+        : <CourseView course={activeTab} data={sessionData} allData={data} isRace={isRace} myPilot={myPilot} display={display} sessionLabel={sessionLabel} />}
     </div>
   );
 }

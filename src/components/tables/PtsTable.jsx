@@ -4,6 +4,9 @@ import { useSortConfig, sortRows } from "../../logic/sortUtils.js";
 import { Th, STh, Td, rowBg, rowBorder } from "../atoms/TableCells.jsx";
 import { Rank } from "../atoms/Rank.jsx";
 
+const PODIUM_BG     = ["#F5A62318", "#8899AA14", "#CD7F3214"];
+const PODIUM_BORDER = ["#F5A623",   "#8899AA",   "#CD7F32"  ];
+
 export function PtsTable({ ranking, courses, data, myPilot, display }) {
   const [sortConfig, onSort] = useSortConfig();
   const sorted = sortRows(ranking, sortConfig, (r, k) => ({
@@ -12,6 +15,7 @@ export function PtsTable({ ranking, courses, data, myPilot, display }) {
     points: r.points,
   }[k]));
   const sp = { sortConfig, onSort };
+  const defaultOrder = !sortConfig.key;
 
   return (
     <div style={{ overflowX: "auto" }}>
@@ -28,9 +32,13 @@ export function PtsTable({ ranking, courses, data, myPilot, display }) {
         </tr></thead>
         <tbody>
           {sorted.map((r, i) => {
-            const info = getPilotInfo(data, r.pilote);
+            const info    = getPilotInfo(data, r.pilote);
+            const isMyP   = !!(myPilot && r.pilote === myPilot);
+            const isPodium = defaultOrder && i < 3;
+            const bg = isMyP ? rowBg(r.pilote, myPilot, i) : isPodium ? PODIUM_BG[i] : rowBg(r.pilote, myPilot, i);
+            const bl = isMyP ? rowBorder(r.pilote, myPilot) : isPodium ? `2px solid ${PODIUM_BORDER[i]}` : rowBorder(r.pilote, myPilot);
             return (
-              <tr key={r.pilote} style={{ background: rowBg(r.pilote, myPilot, i), borderLeft: rowBorder(r.pilote, myPilot) }}>
+              <tr key={r.pilote} style={{ background: bg, borderLeft: bl }}>
                 <Td center display={display}><Rank n={i + 1} /></Td>
                 <Td center dim display={display}>{info.numero ? `#${info.numero}` : "–"}</Td>
                 <Td bold gold={!myPilot && i === 0} display={display}>{r.pilote}{i === 0 && !myPilot ? " 👑" : ""}</Td>

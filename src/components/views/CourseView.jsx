@@ -4,7 +4,7 @@ import { courseRanking } from "../../logic/ranking.js";
 import { usePDFExport } from "../../utils/pdfExport.js";
 import { CourseTable } from "../tables/CourseTable.jsx";
 
-export function CourseView({ course, data, isRace, myPilot, display, sessionLabel }) {
+export function CourseView({ course, data, allData, isRace, myPilot, display, sessionLabel }) {
   const ranking           = useMemo(() => courseRanking(data, course), [data, course]);
   const best              = ranking[0];
   const timeFs            = display ? "2.2rem" : "1.6rem";
@@ -63,7 +63,7 @@ export function CourseView({ course, data, isRace, myPilot, display, sessionLabe
           )}
         </div>
       </div>
-      <CourseTable ranking={ranking} isRace={isRace} myPilot={myPilot} display={display} />
+      <CourseTable ranking={ranking} isRace={isRace} myPilot={myPilot} display={display} data={allData} />
     </div>
   );
 }
