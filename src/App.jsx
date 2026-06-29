@@ -10,10 +10,8 @@ import { QuizPage }    from "./components/views/QuizPage.jsx";
 import { LandingPage }      from "./components/views/LandingPage.jsx";
 import { PredictionPanel } from "./components/views/PredictionPanel.jsx";
 import { CircuitRating }  from "./components/views/CircuitRating.jsx";
-import { Converter }   from "./components/modals/Converter.jsx";
 import { PilotModal }  from "./components/modals/PilotModal.jsx";
 import { SheetsLoader }    from "./components/modals/SheetsLoader.jsx";
-import { AvgCalculator }    from "./components/modals/AvgCalculator.jsx";
 import { AdminDashboard }  from "./components/views/AdminDashboard.jsx";
 
 // Normalise DD/MM/YYYY HH:MM:SS (format Google Sheets) → YYYY-MM-DDTHH:MM:SS
@@ -39,8 +37,6 @@ export default function App() {
   });
   const [activeSession,  setActiveSession]  = useState("essais");
   const [showSheet,      setShowSheet]      = useState(false);
-  const [showConverter,  setShowConverter]  = useState(false);
-  const [showAvgCalc,    setShowAvgCalc]    = useState(false);
   const [showPilotModal, setShowPilotModal] = useState(false);
   const [displayMode,    setDisplayMode]    = useState(false);
   const [loading,        setLoading]        = useState(true);
@@ -228,8 +224,6 @@ export default function App() {
                 </div>
               )}
               <HeaderBtn onClick={() => setShowPilotModal(true)}>👤 {myPilot || "Mon pilote"}</HeaderBtn>
-              {isAdmin && <HeaderBtn onClick={() => setShowConverter(true)}>⏱ Convertisseur</HeaderBtn>}
-              {isAdmin && <HeaderBtn onClick={() => setShowAvgCalc(true)}>⌀ Moyenne</HeaderBtn>}
               {isAdmin && <HeaderBtn onClick={() => setPage("admin")}>📊 Dashboard</HeaderBtn>}
               <HeaderBtn onClick={toggleDisplay}>🖥️ Affichage</HeaderBtn>
               <HeaderBtn onClick={() => setPage("home")}>← Accueil</HeaderBtn>
@@ -264,8 +258,6 @@ export default function App() {
         {!loading && activeSession === "course" && <PredictionPanel data={data} />}
         {!loading && activeSession === "course" && <CircuitRating circuit={currentCircuit} myPilot={myPilot} />}
       </div>
-      {isAdmin && showConverter && <Converter     onClose={() => setShowConverter(false)} />}
-      {isAdmin && showAvgCalc   && <AvgCalculator onClose={() => setShowAvgCalc(false)} />}
       {showPilotModal && <PilotModal current={myPilot} onSave={savePilot} onClose={() => setShowPilotModal(false)} />}
       <div style={{ textAlign: "center", padding: "14px", color: C.soft, fontSize: "0.7rem", borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "center", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
         {isMock ? <span>Mode démonstration</span> : <span>{data.length} entrées · {[...new Set(data.map(d => d.pilote))].length} pilotes</span>}
