@@ -1,0 +1,4 @@
+# ai-pipeline.yml — rempli à l'Étape 3
+# Déclencheur : issue labellisée "ai-task"
+# Flux : checkout → install → pipeline → commit branche → PR
+name: AI Pipeline
