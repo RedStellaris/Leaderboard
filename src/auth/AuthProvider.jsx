@@ -35,16 +35,16 @@ export function AuthProvider({ children }) {
   }, [loadProfile]);
 
   async function signUp(email, password, pseudo) {
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    // Le pseudo est passé en métadonnée utilisateur ; c'est le trigger Postgres
+    // "handle_new_user" (SECURITY DEFINER) qui crée la ligne dans profiles,
+    // pas le client — ça évite toute dépendance à l'état de session/RLS
+    // pendant la fenêtre de confirmation email.
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { pseudo } },
+    });
     if (error) throw error;
-    // Si la confirmation email est désactivée, data.user + session existent immédiatement.
-    // Si elle est activée, l'insert profile suivant échouera (pas de session) — voir note dans le chat.
-    if (data.user) {
-      const { error: profileError } = await supabase.from("profiles").insert({
-        id: data.user.id, email, pseudo, role: "pilote",
-      });
-      if (profileError) throw profileError;
-    }
     return data;
   }
 
