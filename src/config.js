@@ -50,6 +50,39 @@ export const QUIZ_QUESTIONS_BASE = [
   },
 ];
 
+// ==================== XP ====================
+// Valeurs placeholders : à recalibrer une fois que tu as un historique réel
+// d'attribution (volume XP/session encore à définir).
+export const XP_TIERS = [
+  { key: "bronze",  name: "Bronze",  min: 0,   badge: "/badges/bronze.png"  },
+  { key: "argent",  name: "Argent",  min: 100, badge: "/badges/argent.png"  },
+  { key: "or",      name: "Or",      min: 300, badge: "/badges/or.png"      },
+  { key: "platine", name: "Platine", min: 600, badge: "/badges/platine.png" },
+];
+
+// Catégories fixes réutilisables — remplace par ton propre barème.
+// `amount` est une valeur par défaut pré-remplie dans l'UI d'attribution admin,
+// modifiable au moment de l'attribution (couvre catégorie fixe + montant ajustable).
+export const XP_CATEGORIES = [
+  // { key: "podium_propre", label: "Podium propre", amount: 20 },
+  // { key: "fair_play",     label: "Fair-play",      amount: 5  },
+];
+
+// Résout le palier courant à partir d'un total XP.
+export function resolveXpTier(totalXp) {
+  let current = XP_TIERS[0];
+  for (const tier of XP_TIERS) {
+    if (totalXp >= tier.min) current = tier;
+  }
+  return current;
+}
+
+// Palier suivant (pour la barre de progression), ou null si palier max atteint.
+export function nextXpTier(totalXp) {
+  const idx = XP_TIERS.findIndex(t => t.key === resolveXpTier(totalXp).key);
+  return idx >= 0 && idx < XP_TIERS.length - 1 ? XP_TIERS[idx + 1] : null;
+}
+
 // ==================== MOCK DATA ====================
 export const MOCK_DATA = [
   // Essais
