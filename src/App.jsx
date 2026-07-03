@@ -13,6 +13,7 @@ import { CircuitRating }  from "./components/views/CircuitRating.jsx";
 import { PilotModal }  from "./components/modals/PilotModal.jsx";
 import { SheetsLoader }    from "./components/modals/SheetsLoader.jsx";
 import { AdminDashboard }  from "./components/views/AdminDashboard.jsx";
+import { useAuthContext }  from "./auth/AuthProvider.jsx";
 
 // Normalise DD/MM/YYYY HH:MM:SS (format Google Sheets) → YYYY-MM-DDTHH:MM:SS
 function normalizeDate(str) {
@@ -30,6 +31,11 @@ const CACHE_KEY      = "leaderboard_gt3_cache";
 const CACHE_DURATION = 5 * 60 * 1000;
 
 export default function App() {
+  const {
+    session, profile, loading: authLoading,
+    isAdmin, canViewDashboard, signOut,
+  } = useAuthContext();
+
   const [data,           setData]          = useState(MOCK_DATA);
   const [page,           setPage]          = useState(() => {
     try { return localStorage.getItem("quiz_passed") === "true" ? "home" : "quiz"; }
@@ -37,7 +43,7 @@ export default function App() {
   });
   const [activeSession,  setActiveSession]  = useState("essais");
   const [showSheet,      setShowSheet]      = useState(false);
-  const [showPilotModal, setShowPilotModal] = useState(false);
+  const [showAuthModal,  setShowAuthModal]  = useState(false);
   const [displayMode,    setDisplayMode]    = useState(false);
   const [loading,        setLoading]        = useState(true);
   const [lastUpdate,     setLastUpdate]     = useState(null);
@@ -45,21 +51,19 @@ export default function App() {
   const [countdown,      setCountdown]      = useState("");
   const [nextSessionDate, setNextSessionDate] = useState("");
   const [autoErr,        setAutoErr]        = useState("");
-  const [myPilot,        setMyPilot]        = useState(() => {
-    try { return localStorage.getItem("leaderboard_myPilot") || ""; } catch { return ""; }
-  });
-  const isMock  = data === MOCK_DATA;
-  const isAdmin = myPilot.trim().toUpperCase() === "ADMIN";
 
-  function savePilot(name) {
-    setMyPilot(name);
-    try { name ? localStorage.setItem("leaderboard_myPilot", name) : localStorage.removeItem("leaderboard_myPilot"); } catch {}
-  }
+  const isMock  = data === MOCK_DATA;
+  const myPilot = profile?.pseudo || "";
 
   function toggleDisplay() {
     const next = !displayMode;
     setDisplayMode(next);
     try { next ? document.documentElement.requestFullscreen?.() : document.exitFullscreen?.(); } catch {}
+  }
+
+  async function handleLogout() {
+    if (!window.confirm("Se déconnecter ?")) return;
+    await signOut();
   }
 
   // Chargement initial + cache
@@ -201,13 +205,36 @@ export default function App() {
   const isLive = !!(lastUpdate && !isMock && Date.now() - lastUpdate.getTime() < 30 * 60 * 1000);
 
   // ── Quiz d'accès ────────────────────────────────────────────────────────────
-  if (page === "quiz") return <QuizPage onPass={() => setPage("home")} onSavePilot={savePilot} />;
+  if (page === "quiz") return <QuizPage onPass={() => setPage("home")} />;
+
+  // ── Gate authentification (obligatoire après le quiz) ───────────────────────
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Spinner />
+      </div>
+    );
+  }
+  if (!session) {
+    return (
+      <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <PilotModal onClose={() => {}} />
+      </div>
+    );
+  }
+
+  // ── Dashboard admin / co-organisateur ────────────────────────────────────────
+  if (page === "admin" && canViewDashboard) {
+    return <AdminDashboard data={data} onBack={() => setPage("leaderboard")} isAdmin={isAdmin} />;
+  }
+  if (page === "admin" && !canViewDashboard) {
+    // Accès refusé (rôle insuffisant ou changé entre-temps) : retour silencieux au leaderboard.
+    setTimeout(() => setPage("leaderboard"), 0);
+    return null;
+  }
 
   // ── Landing ─────────────────────────────────────────────────────────────────
   if (page === "home") return <LandingPage champion={champion} onEnter={() => setPage("leaderboard")} top3={top3} stats={globalStats} />;
-
-  // ── Dashboard admin ──────────────────────────────────────────────────────────
-  if (page === "admin") return <AdminDashboard data={data} onBack={() => setPage("leaderboard")} />;
 
   // ── Mode affichage ───────────────────────────────────────────────────────────
   if (displayMode) return (
@@ -258,28 +285,23 @@ export default function App() {
                   <div style={{ fontFamily: "'Rajdhani',sans-serif", fontSize: "1.4rem", fontWeight: 700, color: C.gold }}>{champion}</div>
                 </div>
               )}
-              {myPilot ? (
-                <button onClick={() => setShowPilotModal(true)} style={{
-                  background: C.card, border: `1px solid ${C.border}`, borderRadius: 8,
-                  padding: "6px 14px", cursor: "pointer", textAlign: "left",
-                  transition: "border-color 0.15s",
-                }}>
-                  <div style={{ fontSize: "0.6rem", color: C.soft, marginBottom: 1 }}>
-                    👤 {pilotStats?.ecurie || "Pilote"}
+              <button onClick={handleLogout} title="Se déconnecter" style={{
+                background: C.card, border: `1px solid ${C.border}`, borderRadius: 8,
+                padding: "6px 14px", cursor: "pointer", textAlign: "left",
+              }}>
+                <div style={{ fontSize: "0.6rem", color: C.soft, marginBottom: 1 }}>
+                  👤 {pilotStats?.ecurie || "Pilote"}
+                </div>
+                <div style={{ fontFamily: "'Rajdhani',sans-serif", fontSize: "1rem", fontWeight: 700, color: C.text, lineHeight: 1 }}>
+                  {myPilot}
+                </div>
+                {pilotStats?.avg && (
+                  <div style={{ fontSize: "0.62rem", color: C.soft, fontFamily: "monospace", marginTop: 1 }}>
+                    moy. {pilotStats.avg}
                   </div>
-                  <div style={{ fontFamily: "'Rajdhani',sans-serif", fontSize: "1rem", fontWeight: 700, color: C.text, lineHeight: 1 }}>
-                    {myPilot}
-                  </div>
-                  {pilotStats?.avg && (
-                    <div style={{ fontSize: "0.62rem", color: C.soft, fontFamily: "monospace", marginTop: 1 }}>
-                      moy. {pilotStats.avg}
-                    </div>
-                  )}
-                </button>
-              ) : (
-                <HeaderBtn onClick={() => setShowPilotModal(true)}>👤 Mon pilote</HeaderBtn>
-              )}
-              {isAdmin && <HeaderBtn onClick={() => setPage("admin")}>📊 Dashboard</HeaderBtn>}
+                )}
+              </button>
+              {canViewDashboard && <HeaderBtn onClick={() => setPage("admin")}>📊 Dashboard</HeaderBtn>}
               <HeaderBtn onClick={toggleDisplay}>🖥️ Affichage</HeaderBtn>
               <HeaderBtn onClick={() => setPage("home")}>← Accueil</HeaderBtn>
               <a href={DISCORD_URL} target="_blank" rel="noopener noreferrer" style={{ textDecoration:"none" }}><HeaderBtn>💬 Discord</HeaderBtn></a>
@@ -313,7 +335,6 @@ export default function App() {
         {!loading && activeSession === "course" && <PredictionPanel data={data} />}
         {!loading && activeSession === "course" && <CircuitRating circuit={currentCircuit} myPilot={myPilot} />}
       </div>
-      {showPilotModal && <PilotModal current={myPilot} onSave={savePilot} onClose={() => setShowPilotModal(false)} />}
       <div style={{ textAlign: "center", padding: "14px", color: C.soft, fontSize: "0.7rem", borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "center", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
         {isMock ? <span>Mode démonstration</span> : <span>{data.length} entrées · {[...new Set(data.map(d => d.pilote))].length} pilotes</span>}
         {lastUpdate && !isMock && <span style={{ color: C.border, fontSize: "0.65rem" }}>|</span>}

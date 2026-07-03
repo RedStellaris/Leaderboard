@@ -10,15 +10,12 @@ function shuffleArr(arr) {
   return a;
 }
 
-export function QuizPage({ onPass, onSavePilot }) {
+export function QuizPage({ onPass }) {
   const [questions] = useState(() =>
     shuffleArr(QUIZ_QUESTIONS_BASE).map(q => ({ ...q, options: shuffleArr(q.options) }))
   );
   const [answers,      setAnswers]      = useState({});
   const [wrongIds,     setWrongIds]     = useState([]);
-  const [pilotName,    setPilotName]    = useState(() => {
-    try { return localStorage.getItem("leaderboard_myPilot") || ""; } catch { return ""; }
-  });
   const [phase,        setPhase]        = useState(() => {
     try {
       const b = parseInt(localStorage.getItem("quiz_block_until") || "0");
@@ -72,7 +69,6 @@ export function QuizPage({ onPass, onSavePilot }) {
       .map(q => q.id);
 
     if (wrong.length === 0) {
-      if (pilotName.trim()) onSavePilot(pilotName.trim());
       setPhase("passed");
     } else {
       setWrongIds(wrong);
@@ -266,33 +262,6 @@ export function QuizPage({ onPass, onSavePilot }) {
             </div>
           );
         })}
-
-        {/* Q3 — Pseudo pilote (optionnel) */}
-        <div style={{
-          background:C.card, border:`1px solid ${C.border}`,
-          borderRadius:10, padding:"20px", marginBottom:20,
-        }}>
-          <div style={{ color:C.soft, fontSize:"0.62rem", letterSpacing:"0.15em",
-            fontWeight:700, textTransform:"uppercase", marginBottom:8 }}>
-            Question bonus <span style={{ fontWeight:400, opacity:0.7 }}>(optionnel)</span>
-          </div>
-          <div style={{ color:C.text, fontSize:"0.95rem", fontWeight:600, marginBottom:14 }}>
-            Quel est ton pseudo sur le classement ?
-          </div>
-          <input
-            value={pilotName} onChange={e => setPilotName(e.target.value)}
-            placeholder="Exactement comme sur le leaderboard…"
-            style={{
-              width:"100%", boxSizing:"border-box",
-              background:"#09090E", border:`1px solid ${C.border}`,
-              borderRadius:7, padding:"11px 14px",
-              color:C.text, fontSize:"0.875rem", outline:"none", fontFamily:"inherit",
-            }}
-          />
-          <p style={{ color:C.soft, fontSize:"0.7rem", margin:"8px 0 0" }}>
-            Sera utilisé pour te mettre en surbrillance dans les tableaux.
-          </p>
-        </div>
 
         {/* Bandeau erreurs */}
         {wrongIds.length > 0 && (
