@@ -3,6 +3,7 @@ import { C, LOGO, F1_POINTS } from "../../config.js";
 import { Converter }     from "../modals/Converter.jsx";
 import { AvgCalculator } from "../modals/AvgCalculator.jsx";
 import { RoleManager }   from "../modals/RoleManager.jsx";
+import { XpAwardPanel }  from "../modals/XpAwardPanel.jsx";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function normalizeDate(str) {
@@ -176,6 +177,7 @@ export function AdminDashboard({ data, onBack, isAdmin }) {
   const [showConverter, setShowConverter]  = useState(false);
   const [showAvgCalc,   setShowAvgCalc]    = useState(false);
   const [showRoles,     setShowRoles]      = useState(false);
+  const [showXpAward,   setShowXpAward]    = useState(false);
   const TYPE_LABELS = { essais: "🔧 Essais", qualifications: "⏱ Qualifications", course: "🏆 Courses" };
   const TYPE_COLORS = { essais: C.accent,   qualifications: "#6366f1",            course: C.gold };
 
@@ -336,6 +338,7 @@ export function AdminDashboard({ data, onBack, isAdmin }) {
             <button onClick={() => setShowConverter(true)} style={{ background: "transparent", border: `1px solid ${C.border}`, color: C.soft, padding: "8px 16px", borderRadius: 6, cursor: "pointer", fontSize: "0.82rem", fontWeight: 600 }}>⏱ Convertisseur</button>
             <button onClick={() => setShowAvgCalc(true)}   style={{ background: "transparent", border: `1px solid ${C.border}`, color: C.soft, padding: "8px 16px", borderRadius: 6, cursor: "pointer", fontSize: "0.82rem", fontWeight: 600 }}>⌀ Moyenne</button>
             {isAdmin && <button onClick={() => setShowRoles(true)} style={{ background: "transparent", border: `1px solid ${C.accent}66`, color: C.text, padding: "8px 16px", borderRadius: 6, cursor: "pointer", fontSize: "0.82rem", fontWeight: 600 }}>🔐 Rôles</button>}
+            {isAdmin && <button onClick={() => setShowXpAward(true)} style={{ background: "transparent", border: `1px solid ${C.gold}66`, color: C.text, padding: "8px 16px", borderRadius: 6, cursor: "pointer", fontSize: "0.82rem", fontWeight: 600 }}>🎖 XP</button>}
             <button onClick={onBack} style={{ background: "transparent", border: `1px solid ${C.border}`, color: C.soft, padding: "8px 18px", borderRadius: 6, cursor: "pointer", fontSize: "0.85rem", fontWeight: 600 }}>← Retour</button>
           </div>
         </div>
@@ -415,6 +418,7 @@ export function AdminDashboard({ data, onBack, isAdmin }) {
       {showConverter && <Converter     onClose={() => setShowConverter(false)} />}
       {showAvgCalc   && <AvgCalculator onClose={() => setShowAvgCalc(false)} />}
       {showRoles     && isAdmin && <RoleManager onClose={() => setShowRoles(false)} />}
+      {showXpAward   && isAdmin && <XpAwardPanel onClose={() => setShowXpAward(false)} />}
     </div>
   );
 }
