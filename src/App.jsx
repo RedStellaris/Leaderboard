@@ -250,13 +250,13 @@ export default function App() {
   // ── Mode affichage ───────────────────────────────────────────────────────────
   if (displayMode) return (
     <div style={{ position: "fixed", inset: 0, background: C.bg, zIndex: 500, overflowY: "auto", fontFamily: "'Inter',system-ui,sans-serif", color: C.text }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 24px", borderBottom: `1px solid ${C.border}`, background: "#0D0D14" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 24px", borderBottom: `1px solid ${C.border}`, background: "#0D0D14", flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <img src={LOGO} alt="logo" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover" }} />
           <span style={{ fontFamily: "'Rajdhani',sans-serif", fontSize: "1.4rem", fontWeight: 700, color: "#FFF" }}>Leaderboard</span>
           {champion && <span style={{ color: C.gold, fontSize: "0.85rem", fontWeight: 600 }}>🏆 {champion}</span>}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           {SESSIONS.map(s => {
             const active = activeSession === s.key;
             return <button key={s.key} onClick={() => setActiveSession(s.key)} style={{ background: active ? C.accent : "transparent", border: `1px solid ${active ? C.accent : C.border}`, color: active ? "#fff" : C.soft, padding: "6px 14px", borderRadius: 6, cursor: "pointer", fontSize: "0.85rem", fontWeight: active ? 700 : 400 }}>{s.label}</button>;

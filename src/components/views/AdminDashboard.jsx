@@ -4,6 +4,7 @@ import { Converter }     from "../modals/Converter.jsx";
 import { AvgCalculator } from "../modals/AvgCalculator.jsx";
 import { RoleManager }   from "../modals/RoleManager.jsx";
 import { XpAwardPanel }  from "../modals/XpAwardPanel.jsx";
+import { useMediaQuery } from "../../utils/useMediaQuery.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function normalizeDate(str) {
@@ -76,7 +77,7 @@ function SectionCard({ title, children }) {
 }
 
 // Graphe SVG — évolution des points
-function EvolutionChart({ evolution, pilots }) {
+function EvolutionChart({ evolution, pilots, isMobile }) {
   if (!evolution.length || !pilots.length) {
     return <div style={{ color: C.soft, fontSize: "0.85rem", padding: "12px 0" }}>Aucune course enregistrée.</div>;
   }
@@ -96,6 +97,17 @@ function EvolutionChart({ evolution, pilots }) {
     y:   toY(maxPts * f),
   }));
 
+  // Sur mobile : texte SVG agrandi (les unités SVG sont indépendantes du CSS
+  // ambiant, donc "agrandir" ici compense la réduction visuelle globale du
+  // viewBox une fois affiché sur un écran physiquement étroit).
+  const yFontSize = isMobile ? 12 : 9;
+  const xFontSize = isMobile ? 11 : 8;
+
+  // Sur mobile : n'afficher qu'un label X sur deux (ou trois si beaucoup de
+  // points) pour éviter le chevauchement, sans réduire le nombre de points
+  // réellement tracés sur les courbes (l'information des courbes reste intacte).
+  const xLabelStep = isMobile ? (n > 10 ? 3 : 2) : 1;
+
   return (
     <div style={{ overflowX: "auto" }}>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }}>
@@ -103,15 +115,17 @@ function EvolutionChart({ evolution, pilots }) {
         {yTicks.map(({ pts, y }) => (
           <g key={pts}>
             <line x1={padL} x2={W - padR} y1={y} y2={y} stroke={C.border} strokeWidth={0.5} />
-            <text x={padL - 6} y={y + 4} fill={C.soft} fontSize={9} textAnchor="end">{pts}</text>
+            <text x={padL - 6} y={y + 4} fill={C.soft} fontSize={yFontSize} textAnchor="end">{pts}</text>
           </g>
         ))}
 
-        {/* Labels X (date MM-JJ) */}
+        {/* Labels X (date MM-JJ) — sous-échantillonnés sur mobile pour éviter le chevauchement */}
         {evolution.map((e, i) => (
-          <text key={i} x={toX(i)} y={H - 4} fill={C.soft} fontSize={8} textAnchor="middle">
-            {e.date.slice(5)}
-          </text>
+          (i % xLabelStep === 0 || i === n - 1) && (
+            <text key={i} x={toX(i)} y={H - 4} fill={C.soft} fontSize={xFontSize} textAnchor="middle">
+              {e.date.slice(5)}
+            </text>
+          )
         ))}
 
         {/* Courbes */}
@@ -174,6 +188,7 @@ function ParticipationChart({ monthlyRates }) {
 
 // ── Composant principal ───────────────────────────────────────────────────────
 export function AdminDashboard({ data, onBack, isAdmin }) {
+  const isMobile = useMediaQuery();
   const [showConverter, setShowConverter]  = useState(false);
   const [showAvgCalc,   setShowAvgCalc]    = useState(false);
   const [showRoles,     setShowRoles]      = useState(false);
@@ -326,7 +341,7 @@ export function AdminDashboard({ data, onBack, isAdmin }) {
 
       {/* Header */}
       <div style={{ background: "linear-gradient(160deg,#0E0E16 0%,#110610 100%)", borderBottom: `1px solid ${C.border}`, padding: "22px 20px 18px" }}>
-        <div style={{ maxWidth: 960, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ maxWidth: 960, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <img src={LOGO} alt="logo" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover" }} />
             <div>
@@ -334,7 +349,7 @@ export function AdminDashboard({ data, onBack, isAdmin }) {
               <div style={{ fontFamily: "'Rajdhani',sans-serif", fontSize: "1.7rem", fontWeight: 700, color: "#FFF", lineHeight: 1 }}>Dashboard</div>
             </div>
           </div>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button onClick={() => setShowConverter(true)} style={{ background: "transparent", border: `1px solid ${C.border}`, color: C.soft, padding: "8px 16px", borderRadius: 6, cursor: "pointer", fontSize: "0.82rem", fontWeight: 600 }}>⏱ Convertisseur</button>
             <button onClick={() => setShowAvgCalc(true)}   style={{ background: "transparent", border: `1px solid ${C.border}`, color: C.soft, padding: "8px 16px", borderRadius: 6, cursor: "pointer", fontSize: "0.82rem", fontWeight: 600 }}>⌀ Moyenne</button>
             {isAdmin && <button onClick={() => setShowRoles(true)} style={{ background: "transparent", border: `1px solid ${C.accent}66`, color: C.text, padding: "8px 16px", borderRadius: 6, cursor: "pointer", fontSize: "0.82rem", fontWeight: 600 }}>🔐 Rôles</button>}
@@ -347,14 +362,14 @@ export function AdminDashboard({ data, onBack, isAdmin }) {
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "28px 16px" }}>
 
         {/* KPIs */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 16, marginBottom: 20 }}>
           <KpiCard icon="🏁" label="Sessions totales" value={stats.totalSessions} sub="tous types confondus" />
           <KpiCard icon="👤" label="Pilotes actifs"   value={stats.activeDrivers} sub="30 derniers jours"   accent />
           <KpiCard icon="⚡" label="Records battus"   value={stats.recordsBroken} sub="30 derniers jours"   gold />
         </div>
 
         {/* Ligne 2 */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 20 }}>
           <InfoCard icon="📈" label="Meilleure progression (30j)">
             {stats.bestProgPilot
               ? <><span style={{ fontFamily: "'Rajdhani',sans-serif", fontSize: "1.3rem", fontWeight: 700, color: C.text }}>{stats.bestProgPilot}</span><span style={{ color: "#4ade80", fontFamily: "'Rajdhani',sans-serif", fontSize: "1.1rem", fontWeight: 700, marginLeft: 8 }}>{stats.bestProgGain}</span></>
@@ -368,7 +383,7 @@ export function AdminDashboard({ data, onBack, isAdmin }) {
         </div>
 
         {/* Ligne 3 */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 20 }}>
           <InfoCard icon="🏟" label="Circuit le plus actif">
             {stats.topCircuit
               ? <><span style={{ fontFamily: "'Rajdhani',sans-serif", fontSize: "1.3rem", fontWeight: 700, color: C.text }}>{stats.topCircuit.name}</span><span style={{ color: C.soft, fontSize: "0.85rem", marginLeft: 8 }}>{stats.topCircuit.count} entrées</span></>
@@ -388,7 +403,7 @@ export function AdminDashboard({ data, onBack, isAdmin }) {
 
         {/* Évolution classement */}
         <SectionCard title="📉 ÉVOLUTION DU CLASSEMENT GÉNÉRAL — Points cumulés (courses)">
-          <EvolutionChart evolution={stats.evolution} pilots={stats.racePilots} />
+          <EvolutionChart evolution={stats.evolution} pilots={stats.racePilots} isMobile={isMobile} />
         </SectionCard>
 
         {/* Répartition par type */}
