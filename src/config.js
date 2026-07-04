@@ -54,10 +54,10 @@ export const QUIZ_QUESTIONS_BASE = [
 // Valeurs placeholders : à recalibrer une fois que tu as un historique réel
 // d'attribution (volume XP/session encore à définir).
 export const XP_TIERS = [
-  { key: "bronze",  name: "Bronze",  min: 0,   badge: "/badges/bronze.png"  },
-  { key: "argent",  name: "Argent",  min: 100, badge: "/badges/argent.png"  },
-  { key: "or",      name: "Or",      min: 300, badge: "/badges/or.png"      },
-  { key: "platine", name: "Platine", min: 600, badge: "/badges/platine.png" },
+  { key: "bronze",  name: "Bronze",  min: 0,   badge: "/badges/bronze.png",  color: "#CD7F32" },
+  { key: "argent",  name: "Argent",  min: 100, badge: "/badges/argent.png",  color: "#B8BCC2" },
+  { key: "or",      name: "Or",      min: 300, badge: "/badges/or.png",      color: "#F5A623" },
+  { key: "platine", name: "Platine", min: 600, badge: "/badges/platine.png", color: "#7FE6E0" },
 ];
 
 // Catégories fixes réutilisables — remplace par ton propre barème.

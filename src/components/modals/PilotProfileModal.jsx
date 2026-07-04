@@ -86,15 +86,28 @@ export function PilotProfileModal({ profile, pilotStats, cumulated, onClose, onL
         </div>
       </div>
 
-      {/* Badge de grade */}
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
-        <img
-          src={tier.badge}
-          alt={tier.name}
-          style={{ width: 64, height: 64, objectFit: "contain" }}
-          onError={e => { e.currentTarget.style.visibility = "hidden"; }}
-        />
+      {/* Badge de grade — halo circulaire pour contraste sur fond sombre,
+          teinté selon le palier (tier.color), agrandi 64→100px */}
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+        <div style={{
+          width: 116, height: 116, borderRadius: "50%",
+          background: `radial-gradient(circle, ${tier.color}33 0%, ${tier.color}11 55%, transparent 75%)`,
+          border: `1px solid ${tier.color}55`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <img
+            src={tier.badge}
+            alt={tier.name}
+            style={{ width: 100, height: 100, objectFit: "contain", filter: `drop-shadow(0 0 6px ${tier.color}66)` }}
+            onError={e => { e.currentTarget.style.visibility = "hidden"; }}
+          />
+        </div>
       </div>
+      {/* NOTE : si le PNG source est en résolution native basse (ex. 64x64),
+          cet agrandissement à 100px peut le rendre flou plutôt que plus net.
+          Le halo/contraste corrige le problème signalé (badge qui se fond
+          dans le fond sombre) ; la netteté du fichier lui-même reste
+          dépendante de sa résolution d'origine, non vérifiable ici. */}
 
       {/* Barre XP */}
       <div style={{ marginBottom: 4 }}>
