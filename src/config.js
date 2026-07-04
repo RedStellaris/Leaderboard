@@ -57,7 +57,7 @@ export const XP_TIERS = [
   { key: "bronze",  name: "Bronze",  min: 0,   badge: "/badges/bronze.png",  color: "#CD7F32" },
   { key: "argent",  name: "Argent",  min: 100, badge: "/badges/argent.png",  color: "#B8BCC2" },
   { key: "or",      name: "Or",      min: 300, badge: "/badges/or.png",      color: "#F5A623" },
-  { key: "platine", name: "Platine", min: 600, badge: "/badges/platine.png", color: "#7FE6E0" },
+  { key: "platine", name: "Platine", min: 600, badge: "/badges/platine.png", color: "#8B5FBF" },
 ];
 
 // Catégories fixes réutilisables — remplace par ton propre barème.
