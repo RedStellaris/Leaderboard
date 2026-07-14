@@ -1,5 +1,5 @@
 // ==================== CONFIG GLOBALE ====================
-export const LOGO = "/logo.png";
+export const LOGO = "/logo.webp";
 
 export const CHAMPIONSHIP_NAME   = "GT3 Championship";   // ← à personnaliser
 export const CHAMPIONSHIP_SEASON = "Saison 2026";        // ← à personnaliser
