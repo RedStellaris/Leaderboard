@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { MOCK_DATA, SESSIONS, C, LOGO, CURRENT_CHAMPION, DISCORD_URL, F1_POINTS } from "./config.js";
 import { fetchSheetData, fetchSheetConfig } from "./utils/sheetsFetch.js";
-import { computeTimeAgo, parseTime, formatTime } from "./utils/timeUtils.js";
+import { computeTimeAgo, parseTime, formatTime, formatDuration } from "./utils/timeUtils.js";
 import { cumulativeRanking, pointsRanking } from "./logic/ranking.js";
 import { Spinner }     from "./components/atoms/Spinner.jsx";
 import { HeaderBtn }   from "./components/atoms/Pill.jsx";
@@ -12,6 +12,7 @@ import { PredictionPanel } from "./components/views/PredictionPanel.jsx";
 import { CircuitRating }  from "./components/views/CircuitRating.jsx";
 import { PilotModal }  from "./components/modals/PilotModal.jsx";
 import { SheetsLoader }    from "./components/modals/SheetsLoader.jsx";
+import { PilotProfileModal } from "./components/modals/PilotProfileModal.jsx";
 import { AdminDashboard }  from "./components/views/AdminDashboard.jsx";
 import { useAuthContext }  from "./auth/AuthProvider.jsx";
 
@@ -44,6 +45,7 @@ export default function App() {
   const [activeSession,  setActiveSession]  = useState("essais");
   const [showSheet,      setShowSheet]      = useState(false);
   const [showAuthModal,  setShowAuthModal]  = useState(false);
+  const [showProfile,    setShowProfile]    = useState(false);
   const [displayMode,    setDisplayMode]    = useState(false);
   const [loading,        setLoading]        = useState(true);
   const [lastUpdate,     setLastUpdate]     = useState(null);
@@ -195,10 +197,19 @@ export default function App() {
     if (!myPilot || isMock) return null;
     const rows = data.filter(r => r.pilote === myPilot);
     if (!rows.length) return null;
-    const times  = rows.map(r => parseTime(r.temps)).filter(isFinite);
-    const avgMs  = times.length ? Math.round(times.reduce((a, b) => a + b, 0) / times.length) : null;
-    const ecurie = rows.find(r => r.ecurie)?.ecurie || null;
-    return { ecurie, avg: avgMs ? formatTime(avgMs) : null };
+    const times   = rows.map(r => parseTime(r.temps)).filter(isFinite);
+    const avgMs   = times.length ? Math.round(times.reduce((a, b) => a + b, 0) / times.length) : null;
+    const cumulMs = times.length ? times.reduce((a, b) => a + b, 0) : null;
+    const ecurie  = rows.find(r => r.ecurie)?.ecurie || null;
+    // formatTime (MM:SS.mmm) reste utilisé pour "avg" — un temps de tour unique
+    // ne dépasse jamais 59 min, c'est son domaine de validité d'origine.
+    // formatDuration (H:MM:SS.mmm au-delà de 59min) est utilisé pour "cumulated",
+    // qui peut légitimement dépasser 1h pour un pilote avec beaucoup de sessions.
+    return {
+      ecurie,
+      avg:       avgMs   ? formatTime(avgMs)       : null,
+      cumulated: cumulMs ? formatDuration(cumulMs)  : null,
+    };
   }, [data, myPilot, isMock]);
 
   // Indicateur live (dernière mise à jour < 30 min)
@@ -239,13 +250,13 @@ export default function App() {
   // ── Mode affichage ───────────────────────────────────────────────────────────
   if (displayMode) return (
     <div style={{ position: "fixed", inset: 0, background: C.bg, zIndex: 500, overflowY: "auto", fontFamily: "'Inter',system-ui,sans-serif", color: C.text }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 24px", borderBottom: `1px solid ${C.border}`, background: "#0D0D14" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 24px", borderBottom: `1px solid ${C.border}`, background: "#0D0D14", flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <img src={LOGO} alt="logo" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover" }} />
           <span style={{ fontFamily: "'Rajdhani',sans-serif", fontSize: "1.4rem", fontWeight: 700, color: "#FFF" }}>Leaderboard</span>
           {champion && <span style={{ color: C.gold, fontSize: "0.85rem", fontWeight: 600 }}>🏆 {champion}</span>}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           {SESSIONS.map(s => {
             const active = activeSession === s.key;
             return <button key={s.key} onClick={() => setActiveSession(s.key)} style={{ background: active ? C.accent : "transparent", border: `1px solid ${active ? C.accent : C.border}`, color: active ? "#fff" : C.soft, padding: "6px 14px", borderRadius: 6, cursor: "pointer", fontSize: "0.85rem", fontWeight: active ? 700 : 400 }}>{s.label}</button>;
@@ -285,7 +296,7 @@ export default function App() {
                   <div style={{ fontFamily: "'Rajdhani',sans-serif", fontSize: "1.4rem", fontWeight: 700, color: C.gold }}>{champion}</div>
                 </div>
               )}
-              <button onClick={handleLogout} title="Se déconnecter" style={{
+              <button onClick={() => setShowProfile(true)} title="Voir mon profil" style={{
                 background: C.card, border: `1px solid ${C.border}`, borderRadius: 8,
                 padding: "6px 14px", cursor: "pointer", textAlign: "left",
               }}>
@@ -346,6 +357,18 @@ export default function App() {
           </span>
         )}
       </div>
+      {showProfile && (
+        <PilotProfileModal
+          profile={profile}
+          pilotStats={pilotStats}
+          cumulated={pilotStats?.cumulated}
+          onClose={() => setShowProfile(false)}
+          onLogout={async () => {
+            setShowProfile(false);
+            await handleLogout();
+          }}
+        />
+      )}
     </div>
   );
 }

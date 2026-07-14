@@ -20,6 +20,22 @@ export function formatTime(ms) {
   return `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}.${String(mil).padStart(3, "0")}`;
 }
 
+// Dédiée aux durées cumulées (peuvent dépasser 59 min, contrairement à un
+// temps de tour). formatTime() n'est PAS modifiée : elle reste correcte pour
+// son usage d'origine (temps de tour unique, toujours < 60 min).
+export function formatDuration(ms) {
+  if (!isFinite(ms) || ms < 0) return "—";
+  const totalSec = Math.floor(ms / 1000);
+  const h   = Math.floor(totalSec / 3600);
+  const m   = Math.floor((totalSec % 3600) / 60);
+  const s   = totalSec % 60;
+  const mil = ms % 1000;
+  if (h > 0) {
+    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}.${String(mil).padStart(3, "0")}`;
+  }
+  return `${m}:${String(s).padStart(2, "0")}.${String(mil).padStart(3, "0")}`;
+}
+
 export function formatDelta(ms) {
   if (ms === 0) return "LEADER";
   const s = Math.floor(ms / 1000), mil = ms % 1000;
